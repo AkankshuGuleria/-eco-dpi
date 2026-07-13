@@ -1,0 +1,389 @@
+/* ============================================================
+   MOTION.CSS — Premium animation & interaction layer
+   Eco-DPI  ·  all new visual enhancements go here
+   Does NOT override any layout or colour from globals.css
+   ============================================================ */
+
+/* ── 1. EASING TOKENS ─────────────────────────────────────── */
+:root {
+  --ease-out-expo:   cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quart:  cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-quint:  cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-expo:    cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-spring:     cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ── 2. CUSTOM CURSOR ─────────────────────────────────────── */
+.cursor-dot,
+.cursor-ring {
+  pointer-events: none;
+  position: fixed;
+  top: 0; left: 0;
+  z-index: 9999;
+  border-radius: 50%;
+  will-change: transform;
+}
+
+.cursor-dot {
+  width: 10px; height: 10px;
+  background: var(--green-500);
+  box-shadow: 0 0 12px rgba(56,147,106,.9), 0 0 24px rgba(56,147,106,.4);
+  transition: width 150ms var(--ease-out-expo),
+              height 150ms var(--ease-out-expo),
+              background 150ms ease,
+              box-shadow 150ms ease;
+}
+.cursor-ring {
+  width: 44px; height: 44px;
+  border: 1.5px solid rgba(56,147,106,.5);
+  background: rgba(56,147,106,.05);
+  backdrop-filter: blur(2px);
+  transition: width 220ms var(--ease-out-expo),
+              height 220ms var(--ease-out-expo),
+              border-color 220ms ease,
+              background 220ms ease;
+}
+
+.cursor-dot.cursor-hover  { width: 14px; height: 14px; background: var(--teal-500); }
+.cursor-ring.cursor-hover { width: 58px; height: 58px; border-color: rgba(30,155,138,.6); background: rgba(30,155,138,.08); }
+.cursor-dot.cursor-press  { width: 8px;  height: 8px; }
+.cursor-ring.cursor-press { width: 36px; height: 36px; }
+
+/* ── 3. PARTICLE CANVAS ───────────────────────────────────── */
+.particle-canvas {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  width: 100%;
+  height: 100%;
+}
+
+/* ── 4. PRELOADER ─────────────────────────────────────────── */
+.preloader {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  inset: 0;
+  justify-content: center;
+  position: fixed;
+  z-index: 9998;
+  /* Rich dark forest backdrop */
+  background: radial-gradient(ellipse at 40% 60%, #0d3b26 0%, #071e14 60%, #040f0a 100%);
+}
+
+.preloader-scene {
+  width: clamp(180px, 38vmin, 280px);
+  height: clamp(180px, 38vmin, 280px);
+  filter: drop-shadow(0 0 40px rgba(56,200,120,.25));
+}
+
+.preloader-logo {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: .6rem;
+  text-align: center;
+}
+.preloader-mark {
+  width: 3rem; height: 3rem;
+  border-radius: 40% 60% 55% 45%;
+  background: linear-gradient(135deg, #38936a, #1e9b8a);
+  box-shadow: 0 0 32px rgba(56,147,106,.6), inset 0 1px 0 rgba(255,255,255,.3);
+  animation: blob-drift 4s ease-in-out infinite;
+}
+.preloader-wordmark {
+  color: #e4f2ec;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-size: clamp(2rem, 6vw, 3rem);
+  font-weight: 900;
+  letter-spacing: -.04em;
+}
+.preloader-tagline {
+  color: rgba(140,200,170,.7);
+  font-size: clamp(.82rem, 2vw, 1rem);
+  font-weight: 500;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  max-width: none;
+}
+
+.preloader-skip {
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 999px;
+  bottom: 2.5rem;
+  color: rgba(200,230,215,.6);
+  cursor: pointer;
+  font-size: .82rem;
+  font-weight: 600;
+  letter-spacing: .06em;
+  padding: .55rem 1.4rem;
+  position: absolute;
+  transition: background 200ms ease, color 200ms ease;
+}
+.preloader-skip:hover { background: rgba(255,255,255,.16); color: #e4f2ec; }
+
+/* ── 5. PAGE TRANSITION WRAP ──────────────────────────────── */
+.page-transition-wrap { min-height: 0; }
+
+/* ── 6. SCROLL REVEAL ─────────────────────────────────────── */
+.reveal {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 680ms var(--ease-out-expo),
+              transform 680ms var(--ease-out-expo);
+}
+.reveal.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Stagger children */
+.reveal-stagger > * {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 560ms var(--ease-out-expo),
+              transform 560ms var(--ease-out-expo);
+}
+.reveal-stagger > *:nth-child(1) { transition-delay: 0ms; }
+.reveal-stagger > *:nth-child(2) { transition-delay: 75ms; }
+.reveal-stagger > *:nth-child(3) { transition-delay: 150ms; }
+.reveal-stagger > *:nth-child(4) { transition-delay: 225ms; }
+.reveal-stagger > *:nth-child(5) { transition-delay: 300ms; }
+.reveal-stagger > *:nth-child(6) { transition-delay: 375ms; }
+
+.reveal-stagger > *.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── 7. ENHANCED GLASSMORPHISM ────────────────────────────── */
+/* Noise texture overlay — adds tactile grain to glass panels */
+.clay-card::after,
+.incident-panel::after,
+.hero-stage::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+  opacity: .5;
+  z-index: 0;
+}
+/* Ensure card content is above the noise */
+.clay-card > * { position: relative; z-index: 1; }
+
+/* Shimmer sweep on clay card hover */
+.clay-card {
+  overflow: hidden;
+  position: relative;
+}
+.clay-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(255,255,255,.12) 50%,
+    transparent 60%
+  );
+  background-size: 200% 100%;
+  background-position: -100% 0;
+  border-radius: inherit;
+  pointer-events: none;
+  transition: background-position 480ms var(--ease-out-expo);
+  z-index: 2;
+}
+.clay-card:hover::before { background-position: 120% 0; }
+
+/* ── 8. BUTTON ENHANCEMENTS ───────────────────────────────── */
+/* Light sweep on primary button hover */
+.button.primary {
+  overflow: hidden;
+  position: relative;
+}
+.button.primary::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 30%, rgba(255,255,255,.18) 50%, transparent 70%);
+  background-size: 200% 100%;
+  background-position: -100% 0;
+  border-radius: inherit;
+  pointer-events: none;
+  transition: background-position 500ms var(--ease-out-expo);
+}
+.button.primary:hover::after { background-position: 200% 0; }
+
+/* Depth press */
+.button:active {
+  box-shadow: inset 0 2px 8px rgba(0,0,0,.18) !important;
+}
+
+/* ── 9. FORM MICRO-INTERACTIONS ───────────────────────────── */
+/* Glow focus ring */
+input:focus,
+select:focus {
+  box-shadow: 0 0 0 3px rgba(56,147,106,.18), 0 0 16px rgba(56,147,106,.12) !important;
+  transform: scaleY(1.008);
+}
+
+/* Select dropdown open animation — handled via CSS transition */
+select {
+  transition: border-color 200ms ease,
+              box-shadow 200ms ease,
+              transform 200ms var(--ease-out-expo) !important;
+}
+
+/* ── 10. MAP MARKER ENHANCEMENTS ──────────────────────────── */
+/* Pulsing glow ring on markers */
+.map-marker::before,
+.marker::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(56,147,106,.22) 0%, transparent 70%);
+  animation: marker-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes marker-pulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50%       { opacity: 1;   transform: scale(1.18); }
+}
+
+/* Priority colour glow */
+.priority-5::before { background: radial-gradient(circle, rgba(232,150,58,.28) 0%, transparent 70%); }
+.priority-4::before { background: radial-gradient(circle, rgba(232,150,58,.18) 0%, transparent 70%); }
+.priority-3::before { background: radial-gradient(circle, rgba(58,176,212,.18) 0%, transparent 70%); }
+
+/* Drop animation for newly placed markers */
+.marker {
+  animation: marker-drop 500ms var(--ease-out-expo) both,
+             marker-float 3.8s ease-in-out infinite 0.5s;
+}
+@keyframes marker-drop {
+  from { opacity: 0; transform: translate(-50%, calc(-50% - 24px)); }
+  to   { opacity: 1; transform: translate(-50%, -50%); }
+}
+
+/* ── 11. METRIC CARD COUNT-UP ─────────────────────────────── */
+.metric strong {
+  background: linear-gradient(135deg, var(--green-800), var(--teal-500));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── 12. NAV HOVER INDICATOR ──────────────────────────────── */
+.nav-link {
+  position: relative;
+}
+.nav-link::after {
+  content: "";
+  position: absolute;
+  bottom: 4px;
+  left: 50%; right: 50%;
+  height: 2px;
+  background: var(--green-500);
+  border-radius: 2px;
+  transition: left 200ms var(--ease-out-expo),
+              right 200ms var(--ease-out-expo);
+}
+.nav-link:hover::after,
+.nav-link.active::after { left: 12px; right: 12px; }
+
+/* ── 13. ENHANCED BACKGROUND ──────────────────────────────── */
+/* Layered moving gradient orbs */
+.scene-bg {
+  background:
+    radial-gradient(ellipse at 12% 10%, rgba(100,200,155,.28) 0%, transparent 45%),
+    radial-gradient(ellipse at 88% 22%, rgba(60,180,200,.18) 0%, transparent 40%),
+    radial-gradient(ellipse at 55% 85%, rgba(120,200,160,.20) 0%, transparent 50%),
+    linear-gradient(160deg, #e4f2ec 0%, #d0e8dd 50%, #c5e0d4 100%);
+  animation: bg-drift 24s ease-in-out infinite alternate;
+}
+
+@keyframes bg-drift {
+  0%   { background-position: 0% 0%, 100% 0%, 50% 100%, 0% 0%; }
+  100% { background-position: 10% 8%, 92% 6%, 46% 94%, 5% 5%; }
+}
+
+/* ── 14. FILTER CHIP ACTIVE INDICATOR ────────────────────── */
+.filter-chip {
+  position: relative;
+  overflow: hidden;
+}
+.filter-chip::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,.2), transparent);
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+.filter-chip.active::after { opacity: 1; }
+
+/* ── 15. STATUS PILL PULSE (Active) ───────────────────────── */
+.status-pill.active {
+  animation: pill-pulse 2.8s ease-in-out infinite;
+}
+@keyframes pill-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(200,150,50,.0); }
+  50%       { box-shadow: 0 0 0 5px rgba(200,150,50,.15); }
+}
+
+/* ── 16. HOVER 3D TILT ON CLAY CARDS ─────────────────────── */
+.clay-card {
+  transform-style: preserve-3d;
+  transition: transform 280ms var(--ease-out-expo),
+              box-shadow 280ms ease;
+}
+
+/* ── 17. SCROLL TRIGGER KEYFRAMES ────────────────────────── */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ── 18. REDUCED MOTION OVERRIDES ─────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .cursor-dot,
+  .cursor-ring,
+  .particle-canvas,
+  .preloader { display: none !important; }
+
+  .reveal,
+  .reveal-stagger > * {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .clay-card::before,
+  .clay-card::after,
+  .button.primary::after,
+  .map-marker::before,
+  .marker::before { display: none !important; }
+
+  .status-pill.active { animation: none !important; }
+  .scene-bg           { animation: none !important; }
+
+  .metric strong {
+    -webkit-text-fill-color: var(--green-800);
+    background: none;
+  }
+}

@@ -1,0 +1,28 @@
+# =====================
+# Eco-DPI — .gitignore
+# =====================
+
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+dist-server/
+
+# Environment
+.env
+
+# Editor
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+#agents 
+.agent/
+.blackbox/  

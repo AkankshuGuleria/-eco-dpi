@@ -1,0 +1,110 @@
+/* ================================
+   CITIZEN DASHBOARD — Eco-DPI
+   ================================ */
+
+.dashboard {
+  padding-bottom: clamp(4rem, 9vw, 7rem);
+  padding-top: clamp(3rem, 7vw, 5rem);
+}
+
+.dashboard-head {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .9rem;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+}
+.dashboard-head > div { animation: slide-in 500ms cubic-bezier(.16,1,.3,1) both; }
+
+.citizen-layout {
+  animation: slide-in 600ms cubic-bezier(.16,1,.3,1) both;
+  display: grid;
+  gap: 1.2rem;
+  grid-template-columns: minmax(20rem, .95fr) minmax(0, 1.05fr);
+}
+
+/* Report form card */
+.report-card {
+  display: grid;
+  gap: 1rem;
+  padding: clamp(1.2rem, 3vw, 1.6rem);
+}
+
+.report-card h3 {
+  margin-bottom: .25rem;
+}
+
+/* Location capture button (full-width secondary) */
+.location-capture-btn {
+  align-items: center;
+  background: rgba(200, 238, 218, .7);
+  backdrop-filter: blur(8px);
+  border: 1.5px solid rgba(100,180,140,.3);
+  border-radius: var(--radius);
+  color: var(--green-800);
+  cursor: pointer;
+  display: flex;
+  font-size: .9rem;
+  font-weight: 700;
+  gap: .6rem;
+  justify-content: center;
+  min-height: 3rem;
+  padding: .75rem 1rem;
+  transition: background 180ms ease, transform 180ms cubic-bezier(.34,1.56,.64,1);
+  width: 100%;
+}
+.location-capture-btn:hover {
+  background: rgba(180, 235, 205, .85);
+  transform: translateY(-2px);
+}
+
+/* Help / nearby sidebar */
+.help-stack { display: grid; gap: 1rem; }
+
+.easy-card {
+  padding: 1.1rem;
+}
+.easy-card strong { display: block; font-size: 1.05rem; font-weight: 800; margin-bottom: .35rem; }
+
+/* File input */
+input[type="file"] {
+  background: rgba(255,255,255,.6);
+  border-style: dashed;
+  border-width: 2px;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: .88rem;
+  min-height: auto;
+  padding: .6rem .9rem;
+}
+input[type="file"]:hover { background: rgba(255,255,255,.8); }
+
+/* Backend status dot */
+.db-status {
+  align-items: center;
+  display: inline-flex;
+  font-size: .8rem;
+  font-weight: 700;
+  gap: .4rem;
+}
+.db-dot {
+  border-radius: 50%;
+  height: .55rem;
+  width: .55rem;
+}
+.db-dot.connected    { background: #4caf7d; box-shadow: 0 0 6px rgba(76,175,125,.5); }
+.db-dot.disconnected { background: var(--red-500); }
+
+/* Cascading dropdown — slide-in reveal */
+@keyframes cascade-in {
+  from { opacity: 0; transform: translateY(-.5rem); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.cascade-field {
+  animation: cascade-in 220ms cubic-bezier(.16,1,.3,1) both;
+}
+
+@media(max-width:900px){
+  .citizen-layout{ grid-template-columns:1fr; }
+}
