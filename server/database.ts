@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { seedDatabase } from "./seed";
+import { seedDatabase } from "./seed.js";
 
 let seedPromise: Promise<void> | null = null;
 

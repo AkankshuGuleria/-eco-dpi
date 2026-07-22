@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
-import Announcement from "../models/Announcement";
-import { requireAuth, requireAdmin } from "../middleware/auth";
+import Announcement from "../models/Announcement.js";
+import { requireAuth, requireAdmin } from "../middleware/auth.js";
 
 const router = Router();
 

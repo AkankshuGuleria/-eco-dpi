@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import mongoose from "mongoose";
-import Incident from "../models/Incident";
-import { requireAuth, requireAdmin } from "../middleware/auth";
+import Incident from "../models/Incident.js";
+import { requireAuth, requireAdmin } from "../middleware/auth.js";
 
 const router = Router();
 

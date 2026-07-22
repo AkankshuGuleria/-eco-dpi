@@ -1,6 +1,6 @@
 import dotenv from "dotenv";
-import app from "./app";
-import { connectDatabase, seedDatabaseOnce } from "./database";
+import app from "./app.js";
+import { connectDatabase, seedDatabaseOnce } from "./database.js";
 
 dotenv.config();
 

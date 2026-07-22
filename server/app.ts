@@ -2,10 +2,10 @@ import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
-import incidentRoutes from "./routes/incidents";
-import announcementRoutes from "./routes/announcements";
-import authRoutes from "./routes/auth";
-import { connectDatabase, seedDatabaseOnce } from "./database";
+import incidentRoutes from "./routes/incidents.js";
+import announcementRoutes from "./routes/announcements.js";
+import authRoutes from "./routes/auth.js";
+import { connectDatabase, seedDatabaseOnce } from "./database.js";
 
 dotenv.config();
 

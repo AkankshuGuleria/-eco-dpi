@@ -1,4 +1,4 @@
-import Incident from "./models/Incident";
+import Incident from "./models/Incident.js";
 
 const seedIncidents = [
   { incidentId: "INC-1024", category: "Water logging", sector: "Sector 35", lat: 30.7198, lng: 76.7644, reports: 41, priority: 5, status: "Active" as const, updated: "10 min ago" },

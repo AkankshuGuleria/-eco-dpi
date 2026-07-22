@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import User, { IUser } from "../models/User";
+import User, { IUser } from "../models/User.js";
 
 const DEFAULT_JWT_SECRET = "eco-dpi-super-secret-jwt-key-2026";
 
