@@ -1,8 +1,15 @@
 import { Router, Request, Response } from "express";
+import mongoose from "mongoose";
 import Incident from "../models/Incident";
 import { requireAuth, requireAdmin } from "../middleware/auth";
 
 const router = Router();
+
+// Atomic counter for incident IDs (avoids duplicate-key races on concurrent inserts)
+const IncidentCounter = mongoose.model(
+  "IncidentCounter",
+  new mongoose.Schema({ _id: String, seq: { type: Number, default: 1029 } }, { versionKey: false })
+);
 
 // Haversine distance in km
 function distanceKm(lat1: number, lng1: number, lat2: number, lng2: number) {
@@ -15,6 +22,16 @@ function distanceKm(lat1: number, lng1: number, lat2: number, lng2: number) {
       Math.cos((lat2 * Math.PI) / 180) *
       Math.sin(dLng / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// Validate numeric lat/lng within sane bounds (approx. global range)
+function isValidCoord(lat: any, lng: any): boolean {
+  const la = Number(lat);
+  const ln = Number(lng);
+  return (
+    Number.isFinite(la) && Number.isFinite(ln) &&
+    la >= -90 && la <= 90 && ln >= -180 && ln <= 180
+  );
 }
 
 // GET /api/incidents — list all (unprotected so anyone can see the map / public stats)
@@ -47,12 +64,19 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
       return res.status(400).json({ error: "category, lat, lng are required" });
     }
 
+    if (!isValidCoord(lat, lng)) {
+      return res.status(400).json({ error: "lat/lng must be valid numbers within world bounds" });
+    }
+
+    const _lat = Number(lat);
+    const _lng = Number(lng);
+
     const now = new Date().toISOString();
 
     // Find nearby duplicate (same category within 120m)
     const all = await Incident.find({ category, status: { $ne: "Resolved" } });
     const duplicate = all.find(
-      (inc) => distanceKm(lat, lng, inc.lat, inc.lng) <= 0.12
+      (inc) => distanceKm(_lat, _lng, inc.lat, inc.lng) <= 0.12
     );
 
     if (duplicate) {
@@ -64,19 +88,21 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
       return res.json({ merged: true, incident: duplicate });
     }
 
-    // Safe ID: use max existing numeric suffix + 1 to avoid collision after deletes
-    const all2 = await Incident.find({}, { incidentId: 1 });
-    const maxNum = all2.reduce((max, inc) => {
-      const n = parseInt(inc.incidentId.replace("INC-", ""), 10);
-      return isNaN(n) ? max : Math.max(max, n);
-    }, 1029);
+    // Safe ID via atomic counter to avoid duplicate-key races under concurrency.
+    // Counter doc holds the latest numeric suffix; $inc is atomic per request.
+    const counter = await mongoose.model("IncidentCounter").findOneAndUpdate(
+      { _id: "incidentId" },
+      { $inc: { seq: 1 } },
+      { new: true, upsert: true }
+    );
+    const nextNum = Math.max(counter.seq, 1030);
 
     const newIncident = await Incident.create({
-      incidentId: `INC-${maxNum + 1}`,
+      incidentId: `INC-${nextNum}`,
       category,
       sector: sector || "Near you",
-      lat,
-      lng,
+      lat: _lat,
+      lng: _lng,
       reports: 1,
       priority: 1,
       status: "Active",
@@ -86,21 +112,6 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
     res.status(201).json({ merged: false, incident: newIncident });
   } catch (err) {
     res.status(500).json({ error: "Failed to create incident" });
-  }
-});
-
-// PATCH /api/incidents/:id/resolve (protected: requires admin user)
-router.patch("/:id/resolve", requireAuth, requireAdmin, async (req: Request, res: Response) => {
-  try {
-    const incident = await Incident.findOneAndUpdate(
-      { incidentId: req.params.id },
-      { status: "Resolved", updated: new Date().toISOString() },
-      { new: true }
-    );
-    if (!incident) return res.status(404).json({ error: "Not found" });
-    res.json(incident);
-  } catch (err) {
-    res.status(500).json({ error: "Failed to resolve incident" });
   }
 });
 

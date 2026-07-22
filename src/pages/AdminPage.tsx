@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from "react";
-import { Incident } from "../types";
+import { Incident, Announcement } from "../types";
 import { Metric } from "../components/Shared";
 import { IncidentMap } from "../components/IncidentMap";
-import { updateIncidentStatus, deleteIncident, updateIncidentPriority } from "../api";
+import { updateIncidentStatus, deleteIncident, updateIncidentPriority, fetchAllAnnouncements, createAnnouncement, approveAnnouncement, rejectAnnouncement, deleteAnnouncement } from "../api";
 import { demoLocation } from "../utils";
 import "../styles/admin.css";
 
@@ -12,6 +12,8 @@ interface AdminDashboardProps {
   setIncidents: React.Dispatch<React.SetStateAction<Incident[]>>;
   navigate: (page: "home" | "login" | "citizen" | "admin") => void;
   onLogout: () => void;
+  announcements: Announcement[];
+  setAnnouncements: React.Dispatch<React.SetStateAction<Announcement[]>>;
 }
 
 type SortKey = "priority" | "reports" | "updated";
@@ -45,7 +47,7 @@ function relativeTime(updated: string): string {
   return `${Math.floor(ms / 86_400_000)} day${Math.floor(ms / 86_400_000) > 1 ? "s" : ""} ago`;
 }
 
-export function AdminDashboard({ currentUser, incidents, setIncidents, navigate, onLogout }: AdminDashboardProps) {
+export function AdminDashboard({ currentUser, incidents, setIncidents, navigate, onLogout, announcements, setAnnouncements }: AdminDashboardProps) {
   const [filter,        setFilter]        = useState("All");
   const [sortKey,       setSortKey]       = useState<SortKey>("priority");
   const [deleting,      setDeleting]      = useState<string | null>(null);
@@ -123,6 +125,64 @@ export function AdminDashboard({ currentUser, incidents, setIncidents, navigate,
     finally { setDeleting(null); }
   }
 
+  // ── Announcement management ──
+  const [showAnnForm, setShowAnnForm] = useState(false);
+  const [annTitle, setAnnTitle] = useState("");
+  const [annMessage, setAnnMessage] = useState("");
+  const [annType, setAnnType] = useState<Announcement["type"]>("event");
+  const [annDate, setAnnDate] = useState("");
+  const [annTime, setAnnTime] = useState("");
+  const [annLocation, setAnnLocation] = useState("");
+  const [annBusy, setAnnBusy] = useState(false);
+  const [annError, setAnnError] = useState("");
+
+  const pendingAnnouncements = announcements.filter((a) => a.status === "pending");
+
+  async function loadAnnouncements() {
+    try {
+      const all = await fetchAllAnnouncements();
+      setAnnouncements(all);
+    } catch { /* ignore */ }
+  }
+
+  async function handleCreateAnnouncement(e: React.FormEvent) {
+    e.preventDefault();
+    if (!annTitle.trim() || !annMessage.trim()) {
+      setAnnError("Title and message are required.");
+      return;
+    }
+    setAnnBusy(true);
+    setAnnError("");
+    try {
+      await createAnnouncement({
+        title: annTitle.trim(),
+        message: annMessage.trim(),
+        type: annType,
+        eventDate: annType === "event" && annDate ? new Date(annDate).toISOString() : undefined,
+        eventTime: annTime.trim() || undefined,
+        location: annLocation.trim() || undefined,
+      });
+      setAnnTitle(""); setAnnMessage(""); setAnnDate(""); setAnnTime(""); setAnnLocation("");
+      setShowAnnForm(false);
+      await loadAnnouncements();
+    } catch (err: any) {
+      setAnnError(err.message || "Failed to create announcement");
+    } finally {
+      setAnnBusy(false);
+    }
+  }
+
+  async function handleAnnAction(id: string, action: "approve" | "reject" | "delete") {
+    try {
+      if (action === "approve") await approveAnnouncement(id);
+      else if (action === "reject") await rejectAnnouncement(id);
+      else await deleteAnnouncement(id);
+      await loadAnnouncements();
+    } catch (err: any) {
+      setAnnError(err.message || "Action failed");
+    }
+  }
+
   if (!isAdmin) {
     return (
       <section className="admin-dashboard shell" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "60vh", textAlign: "center" }}>
@@ -175,6 +235,111 @@ export function AdminDashboard({ currentUser, incidents, setIncidents, navigate,
         <Metric label="Resolved"         value={String(resolvedCount)} />
         <Metric label="Highest priority" value={String(maxPriority)} />
       </div>
+
+      {/* Announcements management */}
+      <section className="ann-admin clay-card" aria-label="Announcements">
+        <div className="ann-admin-head">
+          <div>
+            <p className="signal">City announcements</p>
+            <h3>📢 Events, notices &amp; alerts shown on the home page</h3>
+          </div>
+          <button className="button primary small" type="button" onClick={() => setShowAnnForm((v) => !v)}>
+            {showAnnForm ? "Close" : "+ New announcement"}
+          </button>
+        </div>
+
+        {annError && (
+          <div className="error-banner" style={{ background: "rgba(240,80,80,.18)", borderLeft: "4px solid #e0533d", padding: ".6rem .8rem", borderRadius: "6px", marginBottom: ".8rem", fontSize: ".85rem" }}>
+            ⚠️ {annError}
+          </div>
+        )}
+
+        {showAnnForm && (
+          <form className="ann-form" onSubmit={handleCreateAnnouncement}>
+            <div className="ann-form-row">
+              <label>
+                Type
+                <select value={annType} onChange={(e) => setAnnType(e.target.value as Announcement["type"])}>
+                  <option value="event">Event (needs approval)</option>
+                  <option value="notice">Notice</option>
+                  <option value="alert">Alert</option>
+                  <option value="update">Update</option>
+                </select>
+              </label>
+              <label>
+                Title
+                <input type="text" value={annTitle} onChange={(e) => setAnnTitle(e.target.value)} placeholder="Blood donation camp" />
+              </label>
+            </div>
+            <label className="ann-full">
+              Message
+              <textarea value={annMessage} onChange={(e) => setAnnMessage(e.target.value)} rows={2} placeholder="Join us for a community blood donation drive…" />
+            </label>
+            <div className="ann-form-row">
+              <label>
+                Date {annType === "event" && <span className="req">*</span>}
+                <input type="date" value={annDate} onChange={(e) => setAnnDate(e.target.value)} />
+              </label>
+              <label>
+                Time
+                <input type="text" value={annTime} onChange={(e) => setAnnTime(e.target.value)} placeholder="10:00 AM – 4:00 PM" />
+              </label>
+              <label>
+                Location
+                <input type="text" value={annLocation} onChange={(e) => setAnnLocation(e.target.value)} placeholder="Sector 17 Plaza" />
+              </label>
+            </div>
+            <div className="ann-form-actions">
+              <button className="button primary small" type="submit" disabled={annBusy}>
+                {annBusy ? "Saving…" : "Create announcement"}
+              </button>
+            </div>
+            {annType === "event" && (
+              <p className="ann-hint">Events are created as <strong>pending</strong> and must be approved before they appear publicly.</p>
+            )}
+          </form>
+        )}
+
+        {pendingAnnouncements.length > 0 && (
+          <div className="ann-pending">
+            <h4>⏳ Pending approval ({pendingAnnouncements.length})</h4>
+            {pendingAnnouncements.map((a) => (
+              <div className="ann-item" key={a._id}>
+                <div className="ann-item-body">
+                  <strong>{a.title}</strong>
+                  <span>{a.message}{a.eventDate ? ` · ${new Date(a.eventDate).toLocaleDateString()}` : ""}</span>
+                </div>
+                <div className="ann-item-actions">
+                  <button className="button primary small" type="button" onClick={() => handleAnnAction(a._id!, "approve")}>Approve</button>
+                  <button className="button secondary small" type="button" onClick={() => handleAnnAction(a._id!, "reject")}>Reject</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="ann-list">
+          <h4>All announcements ({announcements.length})</h4>
+          {announcements.length === 0 && <p className="status-note">No announcements yet.</p>}
+          {announcements.map((a) => (
+            <div className="ann-item" key={a._id}>
+              <div className="ann-item-body">
+                <strong>
+                  {a.title}
+                  <span className={`ann-status ${a.status}`}>{a.status}</span>
+                </strong>
+                <span>{a.message}{a.eventDate ? ` · ${new Date(a.eventDate).toLocaleDateString()}` : ""}</span>
+              </div>
+              <div className="ann-item-actions">
+                {a.status !== "approved" && (
+                  <button className="button primary small" type="button" onClick={() => handleAnnAction(a._id!, "approve")}>Approve</button>
+                )}
+                <button className="delete-btn" type="button" title="Delete" onClick={() => handleAnnAction(a._id!, "delete")}>🗑</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
 
       <div className="admin-controls">
         <div className="filter-bar" role="group" aria-label="Filter by status">

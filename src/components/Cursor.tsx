@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 /**
  * Premium custom cursor — glowing dot + trailing ring.
@@ -8,10 +8,14 @@ import React, { useEffect, useRef } from "react";
 export function Cursor() {
   const dotRef  = useRef<HTMLDivElement>(null);
   const ringRef = useRef<HTMLDivElement>(null);
+  const [isTouch, setIsTouch] = useState(false);
 
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    if (window.matchMedia("(hover: none)").matches) return; // touch device
+    const touchQuery = window.matchMedia("(hover: none)").matches || window.matchMedia("(pointer: coarse)").matches;
+    if (touchQuery) {
+      setIsTouch(true);
+      return;
+    }
 
     const dot  = dotRef.current!;
     const ring = ringRef.current!;
@@ -66,6 +70,8 @@ export function Cursor() {
       obs.disconnect();
     };
   }, []);
+
+  if (isTouch) return null;
 
   return (
     <>

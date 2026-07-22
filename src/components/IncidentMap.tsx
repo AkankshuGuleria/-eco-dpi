@@ -145,9 +145,17 @@ export function IncidentMap({
     }
 
     return () => {
-      // Map cleanup on unmount
+      // Properly tear down the Leaflet instance so remounts don't throw
+      // "Map container is already initialized".
       if (leafletMapInstance.current) {
-        // Safe check to avoid leaving map hanging
+        try {
+          leafletMapInstance.current.off();
+          leafletMapInstance.current.remove();
+        } catch {
+          /* ignore teardown errors */
+        }
+        leafletMapInstance.current = null;
+        markersGroup.current = null;
       }
     };
   }, [incidents, center, zoom, interactive, onMarkerClick]);

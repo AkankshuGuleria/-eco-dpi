@@ -2,13 +2,28 @@ import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import User, { IUser } from "../models/User";
 
-const JWT_SECRET = process.env.JWT_SECRET || "eco-dpi-super-secret-jwt-key-2026";
+const DEFAULT_JWT_SECRET = "eco-dpi-super-secret-jwt-key-2026";
 
-export interface AuthenticatedRequest extends Request {
-  user?: IUser;
+function getJwtSecret() {
+  const secret = process.env.JWT_SECRET;
+  if (!secret || secret === DEFAULT_JWT_SECRET || secret.length < 32) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("JWT_SECRET must be set to a strong value in production");
+    }
+    return DEFAULT_JWT_SECRET;
+  }
+  return secret;
 }
 
-export async function requireAuth(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+declare global {
+  namespace Express {
+    interface Request {
+      user?: IUser | undefined;
+    }
+  }
+}
+
+export async function requireAuth(req: Request, res: Response, next: NextFunction) {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -16,7 +31,7 @@ export async function requireAuth(req: AuthenticatedRequest, res: Response, next
     }
 
     const token = authHeader.split(" ")[1];
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+    const decoded = jwt.verify(token, getJwtSecret()) as { userId: string };
 
     const user = await User.findById(decoded.userId);
     if (!user) {
@@ -30,15 +45,15 @@ export async function requireAuth(req: AuthenticatedRequest, res: Response, next
   }
 }
 
-export function requireAdmin(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+export function requireAdmin(req: Request, res: Response, next: NextFunction) {
   if (!req.user) {
     return res.status(401).json({ error: "Authentication required" });
   }
 
-  const adminEmail = process.env.ADMIN_EMAIL || "akankshuguleria2000@gmail.com";
+  const adminEmail = (process.env.ADMIN_EMAIL || "").toLowerCase();
   const userIdentity = req.user.email || req.user.identity || "";
 
-  if (userIdentity.toLowerCase() === adminEmail.toLowerCase() || req.user.role === "admin") {
+  if (adminEmail && userIdentity.toLowerCase() === adminEmail) {
     next();
   } else {
     return res.status(403).json({ error: "Access denied. Admin role required." });

@@ -23,6 +23,9 @@ Thumbs.db
 # Logs
 *.log
 
-#agents 
-.agent/
-.blackbox/  
+# Custom agents/IDE folders
+.agents/
+.blackbox/
+.kilo/
+.vite-server.err.log
+.vite-server.log

@@ -5,9 +5,10 @@ import "../styles/globals.css";
 interface HeaderProps {
   page: Page;
   navigate: (page: Page) => void;
+  isAdmin?: boolean;
 }
 
-export function Header({ page, navigate }: HeaderProps) {
+export function Header({ page, navigate, isAdmin = false }: HeaderProps) {
   return (
     <header className="nav shell" aria-label="Primary navigation">
       <button
@@ -21,7 +22,7 @@ export function Header({ page, navigate }: HeaderProps) {
       </button>
 
       <nav className="nav-actions" aria-label="Site pages">
-        {(["home", "citizen", "admin"] as Page[]).map((p) => (
+        {(["home", "citizen"] as Page[]).map((p) => (
           <button
             key={p}
             className={`nav-link${page === p ? " active" : ""}`}
@@ -31,6 +32,15 @@ export function Header({ page, navigate }: HeaderProps) {
             {p.charAt(0).toUpperCase() + p.slice(1)}
           </button>
         ))}
+        {isAdmin && (
+          <button
+            className={`nav-link${page === "admin" ? " active" : ""}`}
+            type="button"
+            onClick={() => navigate("admin")}
+          >
+            Admin
+          </button>
+        )}
 
         <button
           className="button primary small"

@@ -84,6 +84,31 @@ Runs on `http://localhost:5173` (or next available port).
 
 ---
 
+## Deploying to Vercel
+
+This project is configured for Vercel with `vercel.json`.
+
+Recommended Vercel settings:
+
+| Setting | Value |
+|---------|-------|
+| Framework Preset | Vite |
+| Build Command | `npm run build` |
+| Output Directory | `dist` |
+
+Add these Environment Variables in Vercel before deploying:
+
+| Variable | Purpose |
+|----------|---------|
+| `MONGO_URI` | MongoDB Atlas connection string |
+| `JWT_SECRET` | Secret used to sign auth tokens |
+| `ADMIN_EMAIL` | Email that receives admin permissions |
+| `CORS_ORIGINS` | Optional comma-separated site origins, such as `https://your-site.vercel.app` |
+
+The frontend calls `/api` by default in production. During local Vite development, `/api` is proxied to `http://localhost:4000`.
+
+---
+
 ## API Endpoints
 
 | Method | Path | Description |

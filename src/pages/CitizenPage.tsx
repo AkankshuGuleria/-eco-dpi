@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { Incident, DeviceLocation } from "../types";
-import { IncidentMiniCard } from "../components/Shared";
 import { IncidentMap } from "../components/IncidentMap";
 import {
   getDistanceKm,
@@ -41,13 +40,13 @@ export function CitizenDashboard({
   const [location, setLocation] = useState({
     lat: (deviceLocation ?? demoLocation).lat.toFixed(6),
     lng: (deviceLocation ?? demoLocation).lng.toFixed(6),
-    state: deviceLocation ? "Device location ready" : "Demo Chandigarh location ready",
+    state: deviceLocation ? "Device location ready" : "Demo area location ready",
   });
 
   const reportOrigin = deviceLocation ?? demoLocation;
   const myReports = incidents
     .filter((i) => getDistanceKm(reportOrigin.lat, reportOrigin.lng, i.lat, i.lng) <= 5)
-    .slice(0, 4);
+    .slice(0, 8);
 
   function handleReportTypeChange(val: string) {
     setReportType(val as ReportType | "");
@@ -108,7 +107,7 @@ export function CitizenDashboard({
       await addIncident(leafCategory, {
         lat: Number(location.lat),
         lng: Number(location.lng),
-        label: deviceLocation ? "Your device location" : "Demo Chandigarh location",
+        label: deviceLocation ? "Your device location" : "Demo area location",
       });
       setLastResult("✓ Report submitted successfully.");
     } catch (err: any) {
@@ -151,7 +150,8 @@ export function CitizenDashboard({
         </div>
       </div>
 
-      <div className="citizen-layout" style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "2rem" }}>
+      {/* ── Map + Report Form — single-column stack ─────────────────── */}
+      <div className="citizen-layout" style={{ display: "grid", gridTemplateColumns: "1fr", gap: "2rem", maxWidth: "820px" }}>
         <div>
           {/* Real Leaflet Map */}
           <div style={{ height: "400px", marginBottom: "2rem", position: "relative" }}>
@@ -294,20 +294,10 @@ export function CitizenDashboard({
             </button>
           </form>
         </div>
-
-        <aside className="help-stack" aria-label="Guidance and nearby reports">
-          <article className="easy-card clay-card">
-            <strong>🗺 Nearby signal</strong>
-            <p>Choose a category, capture your location, and submit. Same-category reports within 120 m are strengthened automatically in MongoDB.</p>
-          </article>
-          {myReports.map((i) => (
-            <IncidentMiniCard incident={i} key={i.incidentId} />
-          ))}
-          {myReports.length === 0 && (
-            <p className="status-note">No incidents within 5 km. Be the first to report!</p>
-          )}
-        </aside>
       </div>
+
+      {/* ── 3-D Notification Scroll Stack ────────────────────────────── */}
+      {/* Notification stack removed per request */}
     </section>
   );
 }

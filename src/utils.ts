@@ -26,7 +26,7 @@ export function getMarkerStyle(
   return { left: `${x}%`, top: `${y}%` };
 }
 
-export const demoLocation = { lat: 30.733315, lng: 76.779417, label: "Demo Chandigarh location" };
+export const demoLocation = { lat: 30.733315, lng: 76.779417, label: "Demo area" };
 
 export const categories = [
   "Water logging",

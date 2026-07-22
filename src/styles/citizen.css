@@ -108,3 +108,300 @@ input[type="file"]:hover { background: rgba(255,255,255,.8); }
 @media(max-width:900px){
   .citizen-layout{ grid-template-columns:1fr; }
 }
+
+/* ================================================
+   NOTIFICATION SCROLL STACK — 3-D Cards
+   ================================================ */
+
+/* section wrapper — full width, sits below the map+form grid */
+.notif-scroll-section {
+  margin-top: 5rem;
+  padding-bottom: 6rem;
+  position: relative;
+  width: 100%;
+}
+
+/* ---------- section header ---------- */
+.notif-scroll-header {
+  margin: 0 auto 3.5rem;
+  max-width: 52rem;
+  text-align: center;
+}
+
+.notif-scroll-eyebrow {
+  align-items: center;
+  color: rgba(76, 175, 125, .9);
+  display: inline-flex;
+  font-size: .75rem;
+  font-weight: 700;
+  gap: .5rem;
+  letter-spacing: .14em;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+}
+
+/* animated pulse dot */
+.notif-pulse {
+  background: #4caf7d;
+  border-radius: 50%;
+  box-shadow: 0 0 0 0 rgba(76,175,125,.6);
+  display: block;
+  height: .55rem;
+  width: .55rem;
+  animation: notif-pulse-ring 2s ease-in-out infinite;
+}
+
+@keyframes notif-pulse-ring {
+  0%   { box-shadow: 0 0 0 0 rgba(76,175,125,.6); }
+  70%  { box-shadow: 0 0 0 8px rgba(76,175,125,0); }
+  100% { box-shadow: 0 0 0 0 rgba(76,175,125,0); }
+}
+
+.notif-scroll-title {
+  font-size: clamp(1.7rem, 3.5vw, 2.6rem);
+  font-weight: 800;
+  letter-spacing: -.02em;
+  line-height: 1.1;
+  margin-bottom: .75rem;
+}
+
+.notif-scroll-sub {
+  color: var(--quiet, rgba(255,255,255,.45));
+  font-size: .95rem;
+  line-height: 1.6;
+  max-width: 36rem;
+  margin: 0 auto;
+}
+
+/* ---------- stack wrapper ---------- */
+.notif-stack-wrap {
+  margin: 0 auto;
+  max-width: 680px;
+  padding: 0 1rem;
+  position: relative;
+}
+
+/* each sticky-stack cell */
+.stack-notif-card {
+  display: flex;
+  justify-content: center;
+  padding-bottom: 2rem;
+  padding-top: 2rem;
+  width: 100%;
+  /* GSAP will pin this */
+}
+
+/* ---------- the 3-D card itself ---------- */
+.notif-3d-card {
+  background:
+    linear-gradient(
+      135deg,
+      rgba(30, 42, 60, .85) 0%,
+      rgba(16, 24, 38, .92) 100%
+    );
+  backdrop-filter: blur(22px) saturate(160%);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, .10);
+  border-radius: 20px;
+  box-shadow:
+    0 4px 24px rgba(0,0,0,.45),
+    0 1px 0 rgba(255,255,255,.06) inset,
+    0 0 40px var(--card-glow, rgba(76,175,125,.15));
+  display: grid;
+  gap: 1.1rem;
+  max-width: 580px;
+  padding: 1.8rem 2rem 1.5rem;
+  position: relative;
+  transform: perspective(900px) rotateX(0deg) rotateY(0deg) scale3d(1,1,1);
+  transform-style: preserve-3d;
+  transition:
+    transform 200ms cubic-bezier(.16,1,.3,1),
+    box-shadow 200ms ease;
+  width: 100%;
+  /* subtle hue shift per card */
+  filter: hue-rotate(var(--hue-shift, 0deg));
+}
+
+.notif-3d-card:hover {
+  box-shadow:
+    0 16px 48px rgba(0,0,0,.55),
+    0 1px 0 rgba(255,255,255,.08) inset,
+    0 0 60px var(--card-glow, rgba(76,175,125,.25));
+}
+
+/* rim light — edge highlight for 3-D depth */
+.notif-card-rim {
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 20px;
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+/* ---------- card internals ---------- */
+.notif-card-top {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.notif-card-id {
+  color: rgba(255,255,255,.38);
+  font-family: "JetBrains Mono", "Fira Mono", "Menlo", monospace;
+  font-size: .72rem;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.notif-card-status-badge {
+  align-items: center;
+  border-radius: 100px;
+  display: inline-flex;
+  font-size: .72rem;
+  font-weight: 700;
+  gap: .3rem;
+  letter-spacing: .06em;
+  padding: .25rem .75rem;
+  text-transform: uppercase;
+}
+
+.notif-card-title {
+  filter: hue-rotate(0deg); /* reset inner text from card hue-rotate */
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  line-height: 1.25;
+  margin: 0;
+  /* override card-level hue filter so text stays readable */
+  filter: none;
+}
+
+.notif-card-sector {
+  align-items: center;
+  color: rgba(255,255,255,.48);
+  display: flex;
+  font-size: .82rem;
+  margin: 0;
+}
+
+/* priority row */
+.notif-card-priority-row {
+  align-items: center;
+  display: grid;
+  gap: .7rem;
+  grid-template-columns: 4.5rem 1fr 2.5rem;
+}
+
+.notif-card-priority-label {
+  color: rgba(255,255,255,.38);
+  font-size: .73rem;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.notif-card-priority-track {
+  background: rgba(255,255,255,.09);
+  border-radius: 100px;
+  height: 5px;
+  overflow: hidden;
+}
+
+.notif-card-priority-fill {
+  border-radius: 100px;
+  height: 100%;
+  transition: width 600ms cubic-bezier(.16,1,.3,1);
+}
+
+.notif-card-priority-val {
+  font-size: .75rem;
+  font-weight: 800;
+  text-align: right;
+}
+
+/* footer row */
+.notif-card-footer {
+  align-items: center;
+  border-top: 1px solid rgba(255,255,255,.06);
+  display: flex;
+  justify-content: space-between;
+  padding-top: .9rem;
+}
+
+.notif-card-reports {
+  align-items: center;
+  color: rgba(255,255,255,.45);
+  display: flex;
+  font-size: .78rem;
+  gap: .4rem;
+}
+
+.notif-card-updated {
+  color: rgba(255,255,255,.3);
+  font-family: "JetBrains Mono", monospace;
+  font-size: .7rem;
+}
+
+/* counter badge — bottom right */
+.notif-card-counter {
+  bottom: -1rem;
+  color: rgba(255,255,255,.2);
+  font-family: "JetBrains Mono", monospace;
+  font-size: .65rem;
+  font-weight: 600;
+  letter-spacing: .12em;
+  position: absolute;
+  right: 1.5rem;
+  text-transform: uppercase;
+}
+
+/* ---------- empty state ---------- */
+.notif-empty {
+  align-items: center;
+  background: rgba(255,255,255,.03);
+  border: 1.5px dashed rgba(255,255,255,.1);
+  border-radius: 20px;
+  color: rgba(255,255,255,.4);
+  display: flex;
+  flex-direction: column;
+  gap: .6rem;
+  margin: 0 auto;
+  max-width: 440px;
+  padding: 3.5rem 2rem;
+  text-align: center;
+}
+
+.notif-empty-icon {
+  color: rgba(255,255,255,.18);
+  margin-bottom: .5rem;
+}
+
+.notif-empty p {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.notif-empty span {
+  font-size: .85rem;
+  opacity: .65;
+}
+
+/* reduced motion: disable 3-D tilt + GSAP stack */
+@media (prefers-reduced-motion: reduce) {
+  .notif-3d-card {
+    transform: none !important;
+    transition: none;
+  }
+  .stack-notif-card {
+    position: static !important;
+  }
+}
+
+/* mobile: no horizontal padding */
+@media (max-width: 680px) {
+  .notif-stack-wrap { padding: 0 .5rem; }
+  .notif-3d-card { padding: 1.4rem 1.3rem 1.2rem; }
+}
+

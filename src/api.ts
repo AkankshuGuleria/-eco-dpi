@@ -1,6 +1,28 @@
 import { Incident } from "./types";
 
-const BASE = "http://localhost:4000/api";
+const BASE = (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/$/, "");
+
+async function readJson<T>(res: Response, fallbackMessage: string): Promise<T> {
+  const text = await res.text();
+  if (!text) {
+    throw new Error(fallbackMessage);
+  }
+
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new Error(text.startsWith("<") ? fallbackMessage : text);
+  }
+}
+
+async function requestJson<T>(res: Response, fallbackMessage: string): Promise<T> {
+  if (!res.ok) {
+    const body = await readJson<{ error?: string }>(res, fallbackMessage);
+    throw new Error(body.error || fallbackMessage);
+  }
+
+  return readJson<T>(res, fallbackMessage);
+}
 
 // Helper to get authorization headers
 function getHeaders(): HeadersInit {
@@ -14,8 +36,7 @@ function getHeaders(): HeadersInit {
 
 export async function fetchIncidents(): Promise<Incident[]> {
   const res = await fetch(`${BASE}/incidents`);
-  if (!res.ok) throw new Error("Failed to fetch incidents");
-  return res.json();
+  return requestJson<Incident[]>(res, "Failed to fetch incidents");
 }
 
 export async function createIncident(payload: {
@@ -29,8 +50,7 @@ export async function createIncident(payload: {
     headers: getHeaders(),
     body: JSON.stringify(payload),
   });
-  if (!res.ok) throw new Error("Failed to create incident");
-  return res.json();
+  return requestJson<{ merged: boolean; incident: Incident }>(res, "Failed to create incident");
 }
 
 export async function updateIncidentStatus(
@@ -42,8 +62,7 @@ export async function updateIncidentStatus(
     headers: getHeaders(),
     body: JSON.stringify({ status }),
   });
-  if (!res.ok) throw new Error("Failed to update status");
-  return res.json();
+  return requestJson<Incident>(res, "Failed to update status");
 }
 
 export async function deleteIncident(incidentId: string): Promise<{ deleted: boolean }> {
@@ -51,8 +70,7 @@ export async function deleteIncident(incidentId: string): Promise<{ deleted: boo
     method: "DELETE",
     headers: getHeaders(),
   });
-  if (!res.ok) throw new Error("Failed to delete incident");
-  return res.json();
+  return requestJson<{ deleted: boolean }>(res, "Failed to delete incident");
 }
 
 export async function updateIncidentPriority(
@@ -64,13 +82,64 @@ export async function updateIncidentPriority(
     headers: getHeaders(),
     body: JSON.stringify({ priority }),
   });
-  if (!res.ok) throw new Error("Failed to update priority");
-  return res.json();
+  return requestJson<Incident>(res, "Failed to update priority");
 }
 
 export async function checkHealth(): Promise<{ status: string; db: string }> {
   const res = await fetch(`${BASE}/health`);
-  return res.json();
+  return requestJson<{ status: string; db: string }>(res, "Failed to check API health");
+}
+
+// Announcements / notifications
+
+export async function fetchAnnouncements(): Promise<any[]> {
+  const res = await fetch(`${BASE}/announcements`);
+  return requestJson<any[]>(res, "Failed to fetch announcements");
+}
+
+export async function fetchAllAnnouncements(): Promise<any[]> {
+  const res = await fetch(`${BASE}/announcements/all`, { headers: getHeaders() });
+  return requestJson<any[]>(res, "Failed to fetch announcements");
+}
+
+export async function createAnnouncement(payload: {
+  title: string;
+  message: string;
+  type?: "event" | "notice" | "alert" | "update";
+  eventDate?: string;
+  eventTime?: string;
+  location?: string;
+}): Promise<any> {
+  const res = await fetch(`${BASE}/announcements`, {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify(payload),
+  });
+  return requestJson<any>(res, "Failed to create announcement");
+}
+
+export async function approveAnnouncement(id: string): Promise<any> {
+  const res = await fetch(`${BASE}/announcements/${id}/approve`, {
+    method: "PATCH",
+    headers: getHeaders(),
+  });
+  return requestJson<any>(res, "Failed to approve announcement");
+}
+
+export async function rejectAnnouncement(id: string): Promise<any> {
+  const res = await fetch(`${BASE}/announcements/${id}/reject`, {
+    method: "PATCH",
+    headers: getHeaders(),
+  });
+  return requestJson<any>(res, "Failed to reject announcement");
+}
+
+export async function deleteAnnouncement(id: string): Promise<{ deleted: boolean }> {
+  const res = await fetch(`${BASE}/announcements/${id}`, {
+    method: "DELETE",
+    headers: getHeaders(),
+  });
+  return requestJson<{ deleted: boolean }>(res, "Failed to delete announcement");
 }
 
 // Authentication Calls
@@ -81,11 +150,7 @@ export async function registerWithPassword(email: string, password: string): Pro
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
   });
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error || "Registration failed");
-  }
-  return res.json();
+  return requestJson<any>(res, "Registration failed");
 }
 
 export async function loginWithPassword(email: string, password: string): Promise<any> {
@@ -94,24 +159,28 @@ export async function loginWithPassword(email: string, password: string): Promis
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
   });
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error || "Login failed");
-  }
-  return res.json();
+  return requestJson<any>(res, "Login failed");
 }
 
-export async function sendOtp(phone: string): Promise<any> {
+export async function sendOtp(phone: string): Promise<{
+  message: string;
+  delivery: "sms" | "console";
+  phone: string;
+  devOtp?: string;
+  devNote?: string;
+}> {
   const res = await fetch(`${BASE}/auth/otp/send`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ phone }),
   });
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error || "Failed to send OTP");
-  }
-  return res.json();
+  return requestJson<{
+    message: string;
+    delivery: "sms" | "console";
+    phone: string;
+    devOtp?: string;
+    devNote?: string;
+  }>(res, "Failed to send OTP");
 }
 
 export async function verifyOtp(phone: string, otp: string): Promise<any> {
@@ -120,11 +189,7 @@ export async function verifyOtp(phone: string, otp: string): Promise<any> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ phone, otp }),
   });
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error || "OTP verification failed");
-  }
-  return res.json();
+  return requestJson<any>(res, "OTP verification failed");
 }
 
 export async function loginWithGoogleDirect(email: string, googleId: string, name?: string): Promise<any> {
@@ -133,17 +198,12 @@ export async function loginWithGoogleDirect(email: string, googleId: string, nam
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, googleId, name }),
   });
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error || "Google Login failed");
-  }
-  return res.json();
+  return requestJson<any>(res, "Google Login failed");
 }
 
 export async function getCurrentUser(): Promise<any> {
   const res = await fetch(`${BASE}/auth/me`, {
     headers: getHeaders(),
   });
-  if (!res.ok) throw new Error("Session invalid");
-  return res.json();
+  return requestJson<any>(res, "Session invalid");
 }
