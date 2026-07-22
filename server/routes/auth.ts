@@ -238,14 +238,60 @@ router.post("/otp/verify", async (req: Request, res: Response) => {
   }
 });
 
-// ── POST /api/auth/google/direct ──────────────────────────────────────────────
+// ── POST /api/auth/google/verify (Real Google OAuth ID Token Verification) ──
+router.post("/google/verify", async (req: Request, res: Response) => {
+  try {
+    const { idToken } = req.body;
+    if (!idToken) {
+      return res.status(400).json({ error: "Google ID Token is required" });
+    }
+
+    // Verify token with Google's public tokeninfo endpoint
+    const googleRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`);
+    if (!googleRes.ok) {
+      return res.status(401).json({ error: "Invalid or expired Google token" });
+    }
+
+    const payload = await googleRes.json();
+    const { sub: googleId, email, email_verified } = payload;
+
+    if (!email || (email_verified !== "true" && email_verified !== true)) {
+      return res.status(400).json({ error: "Google account email is not verified" });
+    }
+
+    let user = await User.findOne({ $or: [{ googleId }, { email: email.toLowerCase() }] });
+    const targetRole = determineRole(email);
+
+    if (user) {
+      let modified = false;
+      if (!user.googleId)           { user.googleId = googleId;  modified = true; }
+      if (user.role !== targetRole) { user.role     = targetRole; modified = true; }
+      if (modified) await user.save();
+    } else {
+      user = await User.create({
+        email: email.toLowerCase(),
+        identity: email.toLowerCase(),
+        googleId,
+        role: targetRole,
+      });
+    }
+
+    const token = generateToken(user._id.toString());
+    res.json({ token, user });
+  } catch (err) {
+    console.error("[auth] google/verify error:", err);
+    res.status(500).json({ error: "Google token verification failed" });
+  }
+});
+
+// ── POST /api/auth/google/direct (Dev fallback) ────────────────────────────────
 router.post("/google/direct", async (req: Request, res: Response) => {
   try {
     if (!isDev() && process.env.ALLOW_INSECURE_GOOGLE_DIRECT !== "true") {
-      return res.status(501).json({ error: "Google OAuth is not configured for production" });
+      return res.status(501).json({ error: "Direct Google sign-in is disabled in production" });
     }
 
-    const { email, googleId, name } = req.body;
+    const { email, googleId } = req.body;
     if (!email || !googleId)
       return res.status(400).json({ error: "Email and Google ID are required" });
 

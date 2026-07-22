@@ -1,6 +1,12 @@
 import React, { useState, useRef, useEffect } from "react";
-import { registerWithPassword, loginWithPassword, sendOtp, verifyOtp, loginWithGoogleDirect } from "../api";
+import { registerWithPassword, loginWithPassword, sendOtp, verifyOtp, loginWithGoogleDirect, verifyGoogleToken } from "../api";
 import "../styles/login.css";
+
+declare global {
+  interface Window {
+    google?: any;
+  }
+}
 
 interface LoginPageProps {
   onLoginSuccess: (token: string, user: any) => void;
@@ -147,32 +153,71 @@ export function LoginPage({ onLoginSuccess, locationStatus, loading, onRequestLo
     }
   };
 
-  // ── Google Direct Login ───────────────────────────────────────────────────
-  const handleGoogleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!googleEmail || !googleEmail.includes("@")) {
-      setErrorMsg("Please enter a valid Gmail address.");
-      return;
-    }
-    clearMessages();
-    setActionLoading(true);
-    const googleId = "google_direct_" + btoa(googleEmail.toLowerCase()).replace(/[^a-z0-9]/gi, "").substring(0, 16);
-    try {
-      onRequestLocation(async () => {
-        try {
-          const res = await loginWithGoogleDirect(googleEmail.trim(), googleId, googleEmail.split("@")[0]);
-          onLoginSuccess(res.token, res.user);
-        } catch (err: any) {
-          setErrorMsg(err.message || "Google authentication failed.");
-        } finally {
-          setActionLoading(false);
-        }
+  // ── Google OAuth (Real Google Account Popup) ──────────────────────────────
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
+  const googleBtnRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (method !== "google") return;
+
+    // Load Google Identity Services SDK script dynamically
+    const scriptId = "google-gsi-script";
+    let script = document.getElementById(scriptId) as HTMLScriptElement;
+
+    const initGoogleGsi = () => {
+      if (!window.google?.accounts?.id) return;
+
+      const clientIdToUse = googleClientId || "demo-client-id.apps.googleusercontent.com";
+
+      window.google.accounts.id.initialize({
+        client_id: clientIdToUse,
+        callback: async (response: any) => {
+          if (!response.credential) return;
+          clearMessages();
+          setActionLoading(true);
+          try {
+            onRequestLocation(async () => {
+              try {
+                const res = await verifyGoogleToken(response.credential);
+                onLoginSuccess(res.token, res.user);
+              } catch (err: any) {
+                setErrorMsg(err.message || "Google authentication failed.");
+              } finally {
+                setActionLoading(false);
+              }
+            });
+          } catch {
+            setErrorMsg("Location access required.");
+            setActionLoading(false);
+          }
+        },
       });
-    } catch {
-      setErrorMsg("Location access required.");
-      setActionLoading(false);
+
+      if (googleBtnRef.current) {
+        googleBtnRef.current.innerHTML = "";
+        window.google.accounts.id.renderButton(googleBtnRef.current, {
+          theme: "filled_blue",
+          size: "large",
+          type: "standard",
+          shape: "rectangular",
+          text: "signin_with",
+          width: 320,
+        });
+      }
+    };
+
+    if (!script) {
+      script = document.createElement("script");
+      script.id = scriptId;
+      script.src = "https://accounts.google.com/gsi/client";
+      script.async = true;
+      script.defer = true;
+      script.onload = initGoogleGsi;
+      document.body.appendChild(script);
+    } else if (window.google?.accounts?.id) {
+      initGoogleGsi();
     }
-  };
+  }, [method, googleClientId]);
 
   // ── Shared UI helpers ─────────────────────────────────────────────────────
   const locationBadge = (
@@ -422,54 +467,25 @@ export function LoginPage({ onLoginSuccess, locationStatus, loading, onRequestLo
         {/* TAB: Google Sign-In                                           */}
         {/* ══════════════════════════════════════════════════════════════ */}
         {method === "google" && (
-          <form onSubmit={handleGoogleLogin} noValidate>
-            <p style={{ fontSize: "0.85rem", color: "var(--quiet)", marginBottom: "0.6rem", lineHeight: 1.5 }}>
-              Sign in using your Google account. Enter your Gmail address to authenticate.
-            </p>
-            <p style={{ fontSize: "0.75rem", color: "var(--quiet)", marginBottom: "1.4rem", lineHeight: 1.4, opacity: 0.65 }}>
-              Note: This uses direct server-side Google verification. For the real OAuth popup, configure <code>GOOGLE_CLIENT_ID</code> in your environment (see TODO.md).
+          <div style={{ textAlign: "center", padding: "1rem 0" }}>
+            <p style={{ fontSize: "0.88rem", color: "var(--quiet)", marginBottom: "1.2rem", lineHeight: 1.5 }}>
+              Click below to sign in using Google. Google's secure account chooser will open to let you pick any signed-in Google account on your device.
             </p>
 
-            <div style={{ marginBottom: "1.5rem" }}>
-              <label htmlFor="google-email-input" style={{ display: "block", marginBottom: "0.3rem" }}>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem" }}>
-                  <svg width="15" height="15" viewBox="0 0 18 18">
-                    <path fill="#4285F4" d="M17.6 9.2c0-.6-.1-1.2-.2-1.8H9v3.4h4.8c-.2 1.1-.8 2-1.8 2.6v2.2h2.9c1.7-1.6 2.7-3.9 2.7-6.4z"/>
-                    <path fill="#34A853" d="M9 18c2.4 0 4.5-.8 6-2.2l-2.9-2.2c-.8.5-1.8.8-3.1.8-2.4 0-4.4-1.6-5.1-3.8H.9v2.3C2.4 15.9 5.5 18 9 18z"/>
-                    <path fill="#FBBC05" d="M3.9 10.6c-.2-.5-.3-1.1-.3-1.6s.1-1.1.3-1.6V5.1H.9C.3 6.3 0 7.6 0 9s.3 2.7.9 3.9l3-2.3z"/>
-                    <path fill="#EA4335" d="M9 3.6c1.3 0 2.5.4 3.4 1.3l2.6-2.6C13.4 1 11.4 0 9 0 5.5 0 2.4 2.1.9 5.1l3 2.3c.7-2.2 2.7-3.8 5.1-3.8z"/>
-                  </svg>
-                  Gmail address
-                </span>
-              </label>
-              <input
-                id="google-email-input"
-                type="email"
-                placeholder="yourname@gmail.com"
-                value={googleEmail}
-                onChange={(e) => setGoogleEmail(e.target.value)}
-                autoComplete="email"
-                required
-              />
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: "1.5rem" }}>
+              <div ref={googleBtnRef} id="google-btn-container" />
             </div>
 
-            {locationBadge}
+            {!googleClientId && (
+              <div style={{ background: "rgba(255,255,255,0.05)", border: "1px dashed rgba(255,255,255,0.2)", borderRadius: "8px", padding: "0.8rem 1rem", fontSize: "0.78rem", color: "var(--quiet)", textAlign: "left" }}>
+                💡 <strong>Google OAuth Setup:</strong> Add <code>VITE_GOOGLE_CLIENT_ID=your_client_id.apps.googleusercontent.com</code> in your <code>.env</code> file (or Vercel Environment Variables) to connect your Google Cloud OAuth application.
+              </div>
+            )}
 
-            <button
-              className="button secondary wide"
-              type="submit"
-              disabled={loading || actionLoading}
-              style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.6rem", padding: "0.9rem 1rem" }}
-            >
-              <svg width="18" height="18" viewBox="0 0 18 18">
-                <path fill="#4285F4" d="M17.6 9.2c0-.6-.1-1.2-.2-1.8H9v3.4h4.8c-.2 1.1-.8 2-1.8 2.6v2.2h2.9c1.7-1.6 2.7-3.9 2.7-6.4z"/>
-                <path fill="#34A853" d="M9 18c2.4 0 4.5-.8 6-2.2l-2.9-2.2c-.8.5-1.8.8-3.1.8-2.4 0-4.4-1.6-5.1-3.8H.9v2.3C2.4 15.9 5.5 18 9 18z"/>
-                <path fill="#FBBC05" d="M3.9 10.6c-.2-.5-.3-1.1-.3-1.6s.1-1.1.3-1.6V5.1H.9C.3 6.3 0 7.6 0 9s.3 2.7.9 3.9l3-2.3z"/>
-                <path fill="#EA4335" d="M9 3.6c1.3 0 2.5.4 3.4 1.3l2.6-2.6C13.4 1 11.4 0 9 0 5.5 0 2.4 2.1.9 5.1l3 2.3c.7-2.2 2.7-3.8 5.1-3.8z"/>
-              </svg>
-              {loading || actionLoading ? "Please wait…" : "Sign in with Google"}
-            </button>
-          </form>
+            <div style={{ marginTop: "1rem" }}>
+              {locationBadge}
+            </div>
+          </div>
         )}
       </div>
     </section>

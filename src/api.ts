@@ -192,6 +192,15 @@ export async function verifyOtp(phone: string, otp: string): Promise<any> {
   return requestJson<any>(res, "OTP verification failed");
 }
 
+export async function verifyGoogleToken(idToken: string): Promise<any> {
+  const res = await fetch(`${BASE}/auth/google/verify`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ idToken }),
+  });
+  return requestJson<any>(res, "Google verification failed");
+}
+
 export async function loginWithGoogleDirect(email: string, googleId: string, name?: string): Promise<any> {
   const res = await fetch(`${BASE}/auth/google/direct`, {
     method: "POST",
