@@ -165,12 +165,10 @@ export function LoginPage({ onLoginSuccess, locationStatus, loading, onRequestLo
     let script = document.getElementById(scriptId) as HTMLScriptElement;
 
     const initGoogleGsi = () => {
-      if (!window.google?.accounts?.id) return;
-
-      const clientIdToUse = googleClientId || "demo-client-id.apps.googleusercontent.com";
+      if (!window.google?.accounts?.id || !googleClientId) return;
 
       window.google.accounts.id.initialize({
-        client_id: clientIdToUse,
+        client_id: googleClientId,
         callback: async (response: any) => {
           if (!response.credential) return;
           clearMessages();
