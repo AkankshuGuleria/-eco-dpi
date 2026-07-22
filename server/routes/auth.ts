@@ -2,7 +2,6 @@ import { Router, Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
-import twilio from "twilio";
 import User from "../models/User";
 import OtpSession from "../models/OtpSession";
 import { requireAuth } from "../middleware/auth";
@@ -38,7 +37,14 @@ function createTwilioClient() {
     !phone || phone === "+1234567890"
   ) return null;
 
-  return twilio(sid, token);
+  // Dynamic require avoids ESM/CJS interop crash when twilio isn't configured
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const twilio = require("twilio");
+    return twilio(sid, token);
+  } catch {
+    return null;
+  }
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
