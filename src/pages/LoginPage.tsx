@@ -154,7 +154,7 @@ export function LoginPage({ onLoginSuccess, locationStatus, loading, onRequestLo
   };
 
   // ── Google OAuth (Real Google Account Popup) ──────────────────────────────
-  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || (import.meta.env as any).GOOGLE_CLIENT_ID || "";
   const googleBtnRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
