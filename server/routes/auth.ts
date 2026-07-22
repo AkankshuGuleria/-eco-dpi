@@ -27,7 +27,7 @@ function getAdminEmail() {
 }
 
 // ── Twilio (optional) — only active when credentials are in .env ───────────────
-function createTwilioClient() {
+async function createTwilioClient() {
   const sid   = process.env.TWILIO_ACCOUNT_SID;
   const token = process.env.TWILIO_AUTH_TOKEN;
   const phone = process.env.TWILIO_PHONE;
@@ -37,11 +37,10 @@ function createTwilioClient() {
     !phone || phone === "+1234567890"
   ) return null;
 
-  // Dynamic require avoids ESM/CJS interop crash when twilio isn't configured
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const twilio = require("twilio");
-    return twilio(sid, token);
+    const twilioModule = await import("twilio");
+    const twilioFn = (twilioModule as any).default || twilioModule;
+    return twilioFn(sid, token);
   } catch {
     return null;
   }
@@ -70,7 +69,7 @@ async function sendSmsOtp(
   phone: string,
   otp: string
 ): Promise<"sms" | "console"> {
-  const client = createTwilioClient();
+  const client = await createTwilioClient();
 
   if (client) {
     await client.messages.create({

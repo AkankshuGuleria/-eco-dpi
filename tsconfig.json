@@ -16,7 +16,7 @@
     "noEmit": true,
     "jsx": "react-jsx"
   },
-  "include": ["src"],
-  "exclude": ["node_modules", "server", "dist-server", "dist"],
+  "include": ["src", "api", "server"],
+  "exclude": ["node_modules", "dist-server", "dist"],
   "references": []
 }
