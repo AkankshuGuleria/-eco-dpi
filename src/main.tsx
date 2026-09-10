@@ -118,10 +118,10 @@ function App() {
     window.scrollTo({ top: 0, behavior: "auto" });
   }
 
-  function handlePreloaderDone() {
+  const handlePreloaderDone = useCallback(() => {
     sessionStorage.setItem("eco-dpi-loaded", "1");
     setShowPreloader(false);
-  }
+  }, []);
 
   // Handle location request on demand during login submission
   const requestLocation = (callback: () => void) => {

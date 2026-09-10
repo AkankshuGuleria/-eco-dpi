@@ -44,7 +44,7 @@ export function Preloader({ onComplete }: PreloaderProps) {
         .fromTo(logoRef.current, { opacity: 0, y: 14, filter: "blur(8px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.55, ease: "power3.out" }, "-=0.1")
         // Hold, then collapse whole thing upward
         .to(wrapRef.current, { y: "-102%", opacity: 0, duration: 0.65, ease: "power4.in", delay: 0.45 });
-    }, wrapRef);
+    }, wrapRef.current);
 
     // Skip button appears after 1.2 s
     const t = setTimeout(() => setCanSkip(true), 1200);
