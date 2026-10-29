@@ -66,21 +66,15 @@ mongod
 
 Or MongoDB Atlas — update `MONGO_URI` in `.env`.
 
-### 2. Start the backend
-
-```bash
-npm run server
-```
-
-Runs on `http://localhost:4000`. Seeded with 6 Chandigarh incidents on first run.
-
-### 3. Start the frontend
+### Run the full stack
 
 ```bash
 npm run dev
 ```
 
-Runs on `http://localhost:5173` (or next available port).
+Starts the API on `http://localhost:4000`, waits for its health check, then starts Vite on `http://localhost:5173` (or the next available port). This avoids frontend requests racing backend startup.
+
+To run the processes in separate terminals, start `npm run server` first, then `npm run dev:client`.
 
 ---
 
@@ -104,8 +98,12 @@ Add these Environment Variables in Vercel before deploying:
 | `JWT_SECRET` | Secret used to sign auth tokens |
 | `ADMIN_EMAIL` | Email that receives admin permissions |
 | `CORS_ORIGINS` | Optional comma-separated site origins, such as `https://your-site.vercel.app` |
+| `VITE_GOOGLE_CLIENT_ID` | Google OAuth web client ID, available to the frontend at build time |
+| `GOOGLE_CLIENT_ID` | Same Google OAuth web client ID, used by the API to verify token audience |
 
 The frontend calls `/api` by default in production. During local Vite development, `/api` is proxied to `http://localhost:4000`.
+
+For Google sign-in, create an OAuth client with application type **Web application** in Google Cloud Console. Add `http://localhost:5173` under **Authorized JavaScript origins** for local development and the exact HTTPS site origin for each deployment. Set `VITE_GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_ID` to the same client ID, then restart the dev server or rebuild/redeploy the frontend.
 
 ---
 
@@ -124,11 +122,11 @@ The frontend calls `/api` by default in production. During local Vite developmen
 
 ---
 
-## Design System — Claymorphism
+## Design System — Glass + Clay
 
-- **Surface**: `rgba(255,255,255,0.72)` + `backdrop-filter: blur(20px)`
-- **Border**: `rgba(255,255,255,0.90)` — milky white halo
-- **Shadow**: `6px 6px 0 rgba(30,90,60,.12)` offset clay shadow + soft ambient
-- **Radius**: 18px cards, 26px large panels, 999px pills
+- **Surface**: translucent white layers with `backdrop-filter: blur(18px) saturate(135%)`
+- **Border**: soft white glass edge paired with inset highlights
+- **Shadow**: layered ambient and inset shadows for a soft clay depth
+- **Radius**: 16px cards, 22px feature panels, 14px buttons, 999px pills
 - **Font**: Plus Jakarta Sans (700–900)
 - **Palette**: Deep forest greens + teal accent + amber alert + sky blue water

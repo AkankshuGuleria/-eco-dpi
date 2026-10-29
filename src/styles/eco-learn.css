@@ -1,0 +1,208 @@
+/* ── Eco-Learn Page ─────────────────────────────────────────────────────── */
+
+.eco-learn-page {
+  padding-block: var(--space-7) var(--space-8);
+}
+
+.eco-learn-header {
+  margin-bottom: var(--space-6);
+  max-width: 720px;
+}
+
+.eco-learn-intro {
+  color: var(--text-muted);
+  font-size: 1rem;
+  line-height: 1.65;
+  margin-top: var(--space-3);
+}
+
+/* ── Explainer card ─────────────────────────────────────────────────────── */
+
+.explainer-card {
+  margin-bottom: var(--space-5);
+  padding: var(--card-pad);
+}
+
+.explainer-header {
+  align-items: flex-start;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-4);
+}
+
+.explainer-title {
+  color: var(--text);
+  font-size: clamp(1.125rem, 2vw, 1.375rem);
+  font-weight: 800;
+  line-height: 1.3;
+  margin: 0;
+}
+
+.explainer-details { margin-top: var(--space-1); }
+
+.explainer-body { display: grid; gap: var(--space-4); }
+
+.explainer-section { display: grid; gap: var(--space-2); }
+
+.explainer-section h3 {
+  color: var(--green-700);
+  font-size: 0.875rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.explainer-section p {
+  color: var(--text-muted);
+  font-size: 1rem;
+  line-height: 1.65;
+  margin: 0;
+}
+
+.explainer-list {
+  display: grid;
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.explainer-list li {
+  color: var(--text-muted);
+  font-size: 1rem;
+  line-height: 1.6;
+  padding-left: var(--space-4);
+  position: relative;
+}
+
+.explainer-list li::before {
+  color: var(--green-500);
+  content: "";
+  height: 6px;
+  width: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  position: absolute;
+  left: 2px;
+  top: 0.65em;
+}
+
+.explainer-action-link { justify-self: start; }
+
+.explainer-takeaway {
+  background: #f1f8f4;
+  border-left: 3px solid var(--green-500);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: var(--space-3) var(--space-4);
+}
+
+.explainer-takeaway p {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.explainer-sources { display: grid; gap: var(--space-2); }
+
+.explainer-sources h3 {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.explainer-sources ul {
+  display: grid;
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.explainer-sources a {
+  color: var(--primary);
+  font-size: 0.9375rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  word-break: break-word;
+}
+
+.explainer-sources a:hover { color: var(--primary-dark); }
+
+/* ── Copy button ────────────────────────────────────────────────────────── */
+
+.copy-btn-wrap {
+  align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: var(--space-1);
+}
+
+.copy-btn {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-sm);
+  color: var(--primary);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 1rem;
+  font-weight: 600;
+  gap: var(--space-2);
+  justify-content: center;
+  padding: 0 var(--space-4);
+  transition: background-color 150ms ease, color 150ms ease;
+  white-space: nowrap;
+}
+
+.copy-btn:hover { background: rgba(46, 124, 89, 0.08); }
+
+.copy-btn.copied {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+.copy-btn.fail {
+  background: #fdecea;
+  border-color: #f3c1bd;
+  color: var(--danger);
+}
+
+.copy-fail-msg {
+  color: var(--danger);
+  font-size: 0.875rem;
+  margin: 0;
+  max-width: 200px;
+  text-align: right;
+}
+
+.visually-hidden {
+  border: 0;
+  clip: rect(0, 0, 0, 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+/* ── Mobile ─────────────────────────────────────────────────────────────── */
+
+@media (max-width: 600px) {
+  .eco-learn-page { padding-block: var(--space-6) var(--space-8); }
+  .explainer-header { flex-direction: column; gap: var(--space-3); }
+  .copy-btn-wrap { align-items: stretch; width: 100%; }
+  .copy-btn { width: 100%; }
+  .copy-fail-msg { max-width: none; text-align: left; }
+}

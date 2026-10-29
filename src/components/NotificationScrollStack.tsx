@@ -8,9 +8,9 @@ gsap.registerPlugin(ScrollTrigger);
 // ---------- helpers ----------
 function statusMeta(status: string) {
   switch (status) {
-    case "Active":    return { color: "#ff6b6b", glow: "rgba(255,107,107,.35)", icon: "⚡", label: "Active" };
-    case "Resolved":  return { color: "#4caf7d", glow: "rgba(76,175,125,.35)",  icon: "✓",  label: "Resolved" };
-    default:          return { color: "#f59e0b", glow: "rgba(245,158,11,.35)",  icon: "↻",  label: "In Progress" };
+    case "Active":    return { color: "#ff6b6b", glow: "rgba(255,107,107,.35)", label: "Active" };
+    case "Resolved":  return { color: "#4caf7d", glow: "rgba(76,175,125,.35)",  label: "Resolved" };
+    default:          return { color: "#f59e0b", glow: "rgba(245,158,11,.35)",  label: "In Progress" };
   }
 }
 
@@ -84,7 +84,7 @@ function NotifCard({ incident, index, total }: NotifCardProps) {
             boxShadow: `0 0 10px ${meta.glow}`,
           }}
         >
-          {meta.icon} {meta.label}
+          {meta.label}
         </span>
       </div>
 

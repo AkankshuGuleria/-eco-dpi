@@ -4,6 +4,8 @@ import React, { useEffect, useRef, useState } from "react";
  * Premium custom cursor — glowing dot + trailing ring.
  * Auto-disabled on touch devices.
  * Skips entirely when prefers-reduced-motion is set.
+ * Cursor elements are hidden until the first real mouse move to prevent
+ * flash at (0,0) or a stale default position on load.
  */
 export function Cursor() {
   const dotRef  = useRef<HTMLDivElement>(null);
@@ -11,25 +13,38 @@ export function Cursor() {
   const [isTouch, setIsTouch] = useState(false);
 
   useEffect(() => {
-    const touchQuery = window.matchMedia("(hover: none)").matches || window.matchMedia("(pointer: coarse)").matches;
+    const touchQuery =
+      window.matchMedia("(hover: none)").matches ||
+      window.matchMedia("(pointer: coarse)").matches;
     if (touchQuery) {
       setIsTouch(true);
       return;
     }
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     const dot  = dotRef.current!;
     const ring = ringRef.current!;
 
-    let mx = -100, my = -100;
-    let rx = -100, ry = -100;
+    // Start invisible — reveal on first real mouse move
+    dot.style.opacity  = "0";
+    ring.style.opacity = "0";
+
+    let mx = -999, my = -999;
+    let rx = -999, ry = -999;
     let raf = 0;
+    let hasMovedOnce = false;
 
     document.body.style.cursor = "none";
 
     function onMove(e: MouseEvent) {
       mx = e.clientX;
       my = e.clientY;
-      dot.style.transform  = `translate(${mx - 5}px, ${my - 5}px)`;
+      dot.style.transform = `translate(${mx - 5}px, ${my - 5}px)`;
+      if (!hasMovedOnce) {
+        hasMovedOnce = true;
+        dot.style.opacity  = "1";
+        ring.style.opacity = "1";
+      }
     }
 
     function lerp(a: number, b: number, t: number) { return a + (b - a) * t; }
@@ -54,7 +69,10 @@ export function Cursor() {
 
     const targets = () => document.querySelectorAll("a,button,input,select,[role='button']");
     function attachTargets() {
-      targets().forEach((el) => { el.addEventListener("mouseenter", onEnter); el.addEventListener("mouseleave", onLeave); });
+      targets().forEach((el) => {
+        el.addEventListener("mouseenter", onEnter);
+        el.addEventListener("mouseleave", onLeave);
+      });
     }
     attachTargets();
 

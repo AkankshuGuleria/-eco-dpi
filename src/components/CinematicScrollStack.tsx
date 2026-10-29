@@ -3,36 +3,44 @@
 import { useRef, useEffect } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import {
+  BarChartIcon,
+  ClipboardIcon,
+  CrosshairIcon,
+  InboxIcon,
+  RefreshIcon,
+  type IconComponent,
+} from "./Icons";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const STEPS = [
+const STEPS: { Icon: IconComponent; title: string; body: string; accent: string }[] = [
   {
-    icon: "📱",
+    Icon: ClipboardIcon,
     title: "Citizen reports issue",
     body: "Open the map, tap your location, and describe the environmental issue — pothole, illegal dumping, water leak, or air quality concern.",
     accent: "var(--green-500)",
   },
   {
-    icon: "📍",
+    Icon: CrosshairIcon,
     title: "Browser captures location",
     body: "We request device geolocation with consent. The report is anchored to your exact position so responders know exactly where to go.",
     accent: "var(--teal-500)",
   },
   {
-    icon: "🗄️",
+    Icon: InboxIcon,
     title: "MongoDB backend stores data",
     body: "Every report is written to a live MongoDB instance. Structured, indexed, and instantly available for dashboards and analytics.",
     accent: "var(--sky-500)",
   },
   {
-    icon: "🔗",
+    Icon: RefreshIcon,
     title: "Nearby reports merge",
     body: "Same-category reports within 120 meters automatically cluster into a single high-priority signal, reducing noise for administrators.",
     accent: "var(--amber-500)",
   },
   {
-    icon: "📊",
+    Icon: BarChartIcon,
     title: "Dashboard shows hotspots",
     body: "Admins see a real-time map of clusters, priority bars, and status pipelines. No refresh required — the stream is live.",
     accent: "var(--green-600)",
@@ -85,23 +93,28 @@ export function CinematicScrollStack() {
       </div>
 
       <div className="cinematic-stack">
-        {STEPS.map((step, i) => (
-          <div
-            key={i}
-            className="cinematic-card"
-            style={{ "--card-index": i } as React.CSSProperties}
-          >
-            <div className="cinematic-frame">
-              <div className="cinematic-step-num">0{i + 1}</div>
-              <div className="cinematic-icon" aria-hidden="true">{step.icon}</div>
-              <div className="cinematic-body">
-                <h3>{step.title}</h3>
-                <p>{step.body}</p>
+        {STEPS.map((step, i) => {
+          const StepIcon = step.Icon;
+          return (
+            <div
+              key={i}
+              className="cinematic-card"
+              style={{ "--card-index": i } as React.CSSProperties}
+            >
+              <div className="cinematic-frame">
+                <div className="cinematic-step-num">0{i + 1}</div>
+                <div className="cinematic-icon" aria-hidden="true" style={{ color: step.accent }}>
+                  <StepIcon size={24} />
+                </div>
+                <div className="cinematic-body">
+                  <h3>{step.title}</h3>
+                  <p>{step.body}</p>
+                </div>
               </div>
+              <div className="cinematic-rim" />
             </div>
-            <div className="cinematic-rim" />
-          </div>
-        ))}
+          );
+        })}
       </div>
     </section>
   );

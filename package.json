@@ -5,8 +5,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --host 0.0.0.0",
-    "dev:all": "concurrently -k -n SERVER,CLIENT -c green,cyan \"npm run server\" \"npm run dev\"",
+    "dev": "concurrently -k -n SERVER,CLIENT -c green,cyan \"npm run server\" \"node scripts/wait-for-api.mjs && npm run dev:client\"",
+    "dev:client": "vite --host 0.0.0.0",
+    "dev:all": "concurrently -k -n SERVER,CLIENT -c green,cyan \"npm run server\" \"node scripts/wait-for-api.mjs && npm run dev:client\"",
     "build": "tsc && vite build",
     "preview": "vite preview --host 0.0.0.0",
     "server": "nodemon --exec tsx server/index.ts",

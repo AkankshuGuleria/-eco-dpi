@@ -5,6 +5,8 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Incident } from "../types";
 import { getDistanceKm, demoLocation } from "../utils";
+import { BarChartIcon, BoltIcon, MapPinIcon } from "./Icons";
+import { CappedList } from "./Reveal";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -55,44 +57,51 @@ export function ImmersiveReportList({ incidents, deviceLocation }: ImmersiveRepo
         <h2>Recent environmental issues near you</h2>
       </div>
 
-      <div ref={listRef} className="immersive-list">
-        {sorted.length === 0 && (
+      <div ref={listRef}>
+        {sorted.length === 0 ? (
           <div className="immersive-empty">
             <p>No reports yet. Be the first to submit.</p>
           </div>
+        ) : (
+          <CappedList
+            items={sorted}
+            limit={6}
+            noun="reports"
+            listClassName="immersive-list"
+            renderItem={(incident, idx) => (
+              <article
+                key={incident.incidentId}
+                className="immersive-report-card"
+                style={
+                  {
+                    "--delay": `${idx * 0.06}s`,
+                    "--status": statusColor(incident.status),
+                  } as React.CSSProperties
+                }
+              >
+                <div className="immersive-card-inner">
+                  <div className="immersive-card-top">
+                    <span className="immersive-id">{incident.incidentId}</span>
+                    <span
+                      className="immersive-status-pill"
+                      style={{ background: `${statusColor(incident.status)}18`, color: statusColor(incident.status) }}
+                    >
+                      {incident.status}
+                    </span>
+                  </div>
+                  <h3>{incident.category}</h3>
+                  <p className="immersive-sector">{incident.sector}</p>
+                  <div className="immersive-meta-row">
+                    <span><MapPinIcon size={15} /> {incident.dist.toFixed(1)} km away</span>
+                    <span><BarChartIcon size={15} /> {incident.reports} report{incident.reports !== 1 ? "s" : ""}</span>
+                    <span><BoltIcon size={15} /> Priority {incident.priority}/5</span>
+                  </div>
+                </div>
+                <div className="immersive-rim" />
+              </article>
+            )}
+          />
         )}
-        {sorted.map((incident, idx) => (
-          <article
-            key={incident.incidentId}
-            className="immersive-report-card"
-            style={
-              {
-                "--delay": `${idx * 0.06}s`,
-                "--status": statusColor(incident.status),
-              } as React.CSSProperties
-            }
-          >
-            <div className="immersive-card-inner">
-              <div className="immersive-card-top">
-                <span className="immersive-id">{incident.incidentId}</span>
-                <span
-                  className="immersive-status-pill"
-                  style={{ background: `${statusColor(incident.status)}18`, color: statusColor(incident.status) }}
-                >
-                  {incident.status}
-                </span>
-              </div>
-              <h3>{incident.category}</h3>
-              <p className="immersive-sector">{incident.sector}</p>
-              <div className="immersive-meta-row">
-                <span>📍 {incident.dist.toFixed(1)} km away</span>
-                <span>📊 {incident.reports} report{incident.reports !== 1 ? "s" : ""}</span>
-                <span>⚡ Priority {incident.priority}/5</span>
-              </div>
-            </div>
-            <div className="immersive-rim" />
-          </article>
-        ))}
       </div>
     </section>
   );

@@ -1,19 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import User, { IUser } from "../models/User.js";
-
-const DEFAULT_JWT_SECRET = "eco-dpi-super-secret-jwt-key-2026";
-
-function getJwtSecret() {
-  const secret = process.env.JWT_SECRET;
-  if (!secret || secret === DEFAULT_JWT_SECRET || secret.length < 32) {
-    if (process.env.NODE_ENV === "production") {
-      throw new Error("JWT_SECRET must be set to a strong value in production");
-    }
-    return DEFAULT_JWT_SECRET;
-  }
-  return secret;
-}
+import { getJwtSecret } from "../lib/env.js";
 
 declare global {
   namespace Express {
@@ -30,7 +18,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
       return res.status(401).json({ error: "No authentication token provided" });
     }
 
-    const token = authHeader.split(" ")[1];
+    const token = authHeader.slice("Bearer ".length).trim();
     const decoded = jwt.verify(token, getJwtSecret()) as { userId: string };
 
     const user = await User.findById(decoded.userId);
@@ -40,22 +28,23 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
 
     req.user = user;
     next();
-  } catch (err) {
+  } catch {
     return res.status(401).json({ error: "Invalid or expired token" });
   }
 }
 
+/**
+ * Role is read from the database on every request, so revoking admin access
+ * takes effect immediately. Never rely on the client-side role.
+ */
 export function requireAdmin(req: Request, res: Response, next: NextFunction) {
   if (!req.user) {
     return res.status(401).json({ error: "Authentication required" });
   }
 
-  const adminEmail = (process.env.ADMIN_EMAIL || "").toLowerCase();
-  const userIdentity = req.user.email || req.user.identity || "";
-
-  if (adminEmail && userIdentity.toLowerCase() === adminEmail) {
-    next();
-  } else {
-    return res.status(403).json({ error: "Access denied. Admin role required." });
+  if (req.user.role === "admin") {
+    return next();
   }
+
+  return res.status(403).json({ error: "Access denied. Admin role required." });
 }

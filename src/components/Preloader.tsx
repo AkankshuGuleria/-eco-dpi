@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
+
 
 interface PreloaderProps {
   onComplete: () => void;
@@ -9,7 +10,7 @@ interface PreloaderProps {
  * Cinematic preloader — 2.4 s full-screen reveal.
  * Shows an animated leaf + water-droplet SVG scene, then fades to the app.
  * Skip button appears after 1.2 s.
- * Entirely disabled when prefers-reduced-motion is set (fires onComplete immediately).
+ * Uses a shorter, lower-travel sequence when prefers-reduced-motion is set.
  */
 export function Preloader({ onComplete }: PreloaderProps) {
   const wrapRef  = useRef<HTMLDivElement>(null);
@@ -22,15 +23,22 @@ export function Preloader({ onComplete }: PreloaderProps) {
   const [canSkip, setCanSkip] = useState(false);
 
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      onComplete();
-      return;
-    }
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     const ctx = gsap.context(() => {
       const tl = gsap.timeline({ onComplete });
 
-      // Drop falls from top
+      if (reducedMotion) {
+        tl.fromTo(dropRef.current, { attr: { cy: 130 } }, { attr: { cy: 195 }, duration: 0.35, ease: "power1.out" })
+          .set(dropRef.current, { attr: { r: 0 } })
+          .fromTo(rippleRef.current, { attr: { rx: 0, ry: 0 }, opacity: 0.65 }, { attr: { rx: 48, ry: 12 }, opacity: 0, duration: 0.35, ease: "power1.out" }, "<")
+          .fromTo(splashRef.current, { opacity: 0 }, { opacity: 0.8, duration: 0.12 }, "<")
+          .to(splashRef.current, { opacity: 0, duration: 0.12 })
+          .fromTo(logoRef.current, { opacity: 0 }, { opacity: 1, duration: 0.3 }, "-=0.1")
+          .to(wrapRef.current, { opacity: 0, duration: 0.25, delay: 0.25 });
+        return;
+      }
+
       tl.fromTo(dropRef.current, { attr: { cy: -40 } }, { attr: { cy: 195 }, duration: 0.7, ease: "power2.in" })
         // Leaf bends on impact
         .to(leafRef.current, { scaleY: 0.88, transformOrigin: "50% 100%", duration: 0.14, ease: "power1.in" }, "-=0.05")
@@ -44,12 +52,14 @@ export function Preloader({ onComplete }: PreloaderProps) {
         .fromTo(logoRef.current, { opacity: 0, y: 14, filter: "blur(8px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.55, ease: "power3.out" }, "-=0.1")
         // Hold, then collapse whole thing upward
         .to(wrapRef.current, { y: "-102%", opacity: 0, duration: 0.65, ease: "power4.in", delay: 0.45 });
-    }, wrapRef.current);
+    }, wrapRef.current ?? undefined);
 
-    // Skip button appears after 1.2 s
-    const t = setTimeout(() => setCanSkip(true), 1200);
+    const t = reducedMotion ? undefined : setTimeout(() => setCanSkip(true), 1200);
 
-    return () => { ctx.revert(); clearTimeout(t); };
+    return () => {
+      ctx.revert();
+      if (t) clearTimeout(t);
+    };
   }, [onComplete]);
 
   function skip() {
@@ -96,7 +106,7 @@ export function Preloader({ onComplete }: PreloaderProps) {
       </svg>
 
       {/* Logo */}
-      <div ref={logoRef} className="preloader-logo" style={{ opacity: 0 }}>
+      <div ref={logoRef} className="preloader-logo">
         <span className="preloader-mark" />
         <span className="preloader-wordmark">Eco-DPI</span>
         <p className="preloader-tagline">Environmental Intelligence Platform</p>

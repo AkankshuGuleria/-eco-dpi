@@ -3,6 +3,7 @@ import mongoose, { Document, Schema } from "mongoose";
 export type Role = "citizen" | "admin";
 
 export interface IUser extends Document {
+  name?: string;
   identity?: string;
   email?: string;
   phone?: string;
@@ -15,6 +16,7 @@ export interface IUser extends Document {
 
 const UserSchema = new Schema<IUser>(
   {
+    name: { type: String, trim: true, maxlength: 60 },
     identity: { type: String, trim: true },
     email: { type: String, trim: true, lowercase: true },
     phone: { type: String, trim: true },

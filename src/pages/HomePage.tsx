@@ -6,11 +6,13 @@ import { AnnouncementScrollStack } from "../components/AnnouncementScrollStack";
 import { ActiveRequestsGraph3D } from "../components/ActiveRequestsGraph3D";
 import { ImmersiveReportList } from "../components/ImmersiveReportList";
 import { Footer } from "../components/Footer";
+import { BookIcon, CheckCircleIcon, MapPinIcon } from "../components/Icons";
 import { getDistanceKm, demoLocation } from "../utils";
+import { Page } from "../types";
 import "../styles/home.css";
 
 interface HomePageProps {
-  navigate: (page: "home" | "login" | "citizen" | "admin" | "demo") => void;
+  navigate: (page: Page) => void;
   incidents: Incident[];
   addIncident: (category: string, location?: DeviceLocation) => void;
   isLoggedIn: boolean;
@@ -27,27 +29,50 @@ export function HomePage({ navigate, incidents, addIncident, isLoggedIn, deviceL
     <>
       <section className="hero shell" aria-labelledby="hero-title">
         <div className="hero-copy reveal">
-          <p className="signal">Environmental public infrastructure</p>
-          <h1 id="hero-title">Report civic issues.<br />See your area respond.</h1>
+          <p className="signal">Environmental governance platform</p>
+          <h1 id="hero-title">Understand policy.<br />Know what to do.<br />Report local issues.</h1>
           <p className="hero-text">
-            Eco-DPI connects citizens and administrators through location-aware reporting.
-            Reports are stored securely in MongoDB. Authenticated citizens can map and submit new reports directly.
+            Eco-DPI is an environmental governance platform that helps citizens understand environmental
+            policy, know what to do, report local issues, and (where supported) track the response.
           </p>
-          <div className="hero-actions" aria-label="Primary actions">
-            {isLoggedIn ? (
-              <button className="button primary" type="button" onClick={() => navigate("citizen")}>
-                Go to Dashboard
-              </button>
-            ) : (
-              <button className="button primary" type="button" onClick={() => navigate("login")}>
-                Login to Begin
-              </button>
-            )}
-            <button className="button secondary" type="button" onClick={() => navigate("citizen")}>
-              Add a report
+
+          {/* Three primary CTAs */}
+          <div className="hero-primary-actions" aria-label="Primary navigation options">
+            <button
+              id="cta-eco-learn"
+              className="button primary hero-cta"
+              type="button"
+              onClick={() => navigate("eco-learn")}
+            >
+              <BookIcon size={20} />
+              <span className="hero-cta-text">
+                Eco-Learn
+                <span className="hero-cta-sub">Understand policy</span>
+              </span>
             </button>
-            <button className="button secondary" type="button" onClick={() => navigate("demo")}>
-              View Demo
+            <button
+              id="cta-report"
+              className="button primary hero-cta"
+              type="button"
+              onClick={() => navigate(isLoggedIn ? "citizen" : "login")}
+            >
+              <MapPinIcon size={20} />
+              <span className="hero-cta-text">
+                Report an Issue
+                <span className="hero-cta-sub">Submit a local report</span>
+              </span>
+            </button>
+            <button
+              id="cta-take-action"
+              className="button primary hero-cta"
+              type="button"
+              onClick={() => navigate("take-action")}
+            >
+              <CheckCircleIcon size={20} />
+              <span className="hero-cta-text">
+                Take Action
+                <span className="hero-cta-sub">Practical guides</span>
+              </span>
             </button>
           </div>
         </div>
@@ -66,7 +91,7 @@ export function HomePage({ navigate, incidents, addIncident, isLoggedIn, deviceL
       <AnnouncementScrollStack announcements={announcements} />
       <ActiveRequestsGraph3D incidents={incidents} />
       <ImmersiveReportList incidents={incidents} deviceLocation={deviceLocation} />
-      <Footer />
+      <Footer navigate={navigate} />
     </>
   );
 }
@@ -110,7 +135,7 @@ function LiveCityDashboard({
           <Metric label="High priority" value={loading ? "…" : String(highPriority)} />
         </div>
 
-        <div className="nearby-map" style={{ position: "relative", height: "350px", overflow: "hidden", borderRadius: "12px" }}>
+        <div className="nearby-map map-panel">
           <IncidentMap
             incidents={nearby}
             center={center}

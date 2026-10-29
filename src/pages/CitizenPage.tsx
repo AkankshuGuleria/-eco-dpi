@@ -1,9 +1,15 @@
 import React, { useState } from "react";
-import { Incident, DeviceLocation } from "../types";
+import { Incident, DeviceLocation, Page } from "../types";
 import { IncidentMap } from "../components/IncidentMap";
 import {
+  AlertIcon,
+  CheckCircleIcon,
+  ClipboardIcon,
+  CrosshairIcon,
+  LogOutIcon,
+} from "../components/Icons";
+import {
   getDistanceKm,
-  categories,
   demoLocation,
   ReportType,
   ACTIVITY_CATEGORIES,
@@ -19,7 +25,7 @@ interface CitizenDashboardProps {
   currentUser: any;
   incidents: Incident[];
   addIncident: (category: string, location?: DeviceLocation) => Promise<unknown>;
-  navigate: (page: "home" | "login" | "citizen" | "admin") => void;
+  navigate: (page: Page) => void;
   deviceLocation: DeviceLocation | null;
   setDeviceLocation: (loc: DeviceLocation) => void;
   dbConnected: boolean;
@@ -36,7 +42,7 @@ export function CitizenDashboard({
   const [complaintType, setComplaintType]         = useState("");
 
   const [submitting, setSubmitting] = useState(false);
-  const [lastResult, setLastResult] = useState<string | null>(null);
+  const [lastResult, setLastResult] = useState<{ message: string; ok: boolean } | null>(null);
   const [location, setLocation] = useState({
     lat: (deviceLocation ?? demoLocation).lat.toFixed(6),
     lng: (deviceLocation ?? demoLocation).lng.toFixed(6),
@@ -84,7 +90,7 @@ export function CitizenDashboard({
         setLocation({
           lat: pos.coords.latitude.toFixed(6),
           lng: pos.coords.longitude.toFixed(6),
-          state: "✓ Location captured successfully",
+          state: "Location captured successfully.",
         });
         setDeviceLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude, label: "Your device location" });
       },
@@ -109,9 +115,12 @@ export function CitizenDashboard({
         lng: Number(location.lng),
         label: deviceLocation ? "Your device location" : "Demo area location",
       });
-      setLastResult("✓ Report submitted successfully.");
+      setLastResult({ message: "Report submitted successfully.", ok: true });
     } catch (err: any) {
-      setLastResult("⚠ Failed to submit: " + (err.message || "unreachable backend"));
+      setLastResult({
+        message: "Could not submit: " + (err.message || "the server is unreachable"),
+        ok: false,
+      });
     } finally {
       setSubmitting(false);
     }
@@ -122,8 +131,10 @@ export function CitizenDashboard({
   const complaintTypes =
     complaintCategory ? COMPLAINT_TYPES[complaintCategory as ComplaintCategory] : [];
 
-  const displayName = currentUser ? (currentUser.email || currentUser.phone || currentUser.identity) : "Authenticated Citizen";
-  const isAdmin = currentUser?.role === "admin" || (currentUser?.email && currentUser.email.toLowerCase() === "akankshuguleria2000@gmail.com");
+  const displayName = currentUser
+    ? (currentUser.name || currentUser.email || currentUser.phone || currentUser.identity)
+    : "Authenticated Citizen";
+  const isAdmin = currentUser?.role === "admin";
 
   return (
     <section className="dashboard shell" aria-labelledby="citizen-title">
@@ -138,23 +149,24 @@ export function CitizenDashboard({
             </span>
           </p>
         </div>
-        <div style={{ display: "flex", gap: "0.8rem" }}>
+        <div className="dashboard-actions">
           {isAdmin && (
             <button className="button secondary" type="button" onClick={() => navigate("admin")}>
-              Go to Admin View
+              Admin view
             </button>
           )}
-          <button className="button secondary" type="button" onClick={onLogout} style={{ border: "1px solid rgba(255, 100, 100, 0.4)", color: "rgba(255, 150, 150, 0.9)" }}>
-            Logout
+          <button className="button secondary" type="button" onClick={onLogout}>
+            <LogOutIcon size={18} />
+            Sign out
           </button>
         </div>
       </div>
 
       {/* ── Map + Report Form — single-column stack ─────────────────── */}
-      <div className="citizen-layout" style={{ display: "grid", gridTemplateColumns: "1fr", gap: "2rem", maxWidth: "820px" }}>
+      <div className="citizen-layout">
         <div>
           {/* Real Leaflet Map */}
-          <div style={{ height: "400px", marginBottom: "2rem", position: "relative" }}>
+          <div className="map-panel dashboard-map">
             <IncidentMap
               incidents={incidents}
               center={deviceLocation ?? demoLocation}
@@ -162,8 +174,11 @@ export function CitizenDashboard({
             />
           </div>
 
-          <form className="report-card clay-card" onSubmit={handleSubmit} style={{ width: "100%", maxWidth: "100%" }}>
-            <h3>📝 New report</h3>
+          <form className="report-card clay-card" onSubmit={handleSubmit}>
+            <h3 className="report-title">
+              <ClipboardIcon size={20} />
+              New report
+            </h3>
 
             {/* ── Level 1: Report Type ──────────────────────────────────────── */}
             <label htmlFor="report-type-select">
@@ -267,21 +282,26 @@ export function CitizenDashboard({
             <p className="status-note" role="status">{location.state}</p>
 
             <button
-              className="location-capture-btn"
+              className="button secondary wide location-capture-btn"
               type="button"
               onClick={captureLocation}
             >
-              📡 Capture current location
+              <CrosshairIcon size={18} />
+              Capture current location
             </button>
 
             <label htmlFor="photo-upload">
-              Upload photo <span style={{ fontWeight: 400, color: "var(--quiet)" }}>(optional)</span>
+              Upload photo <span className="field-optional">(optional)</span>
               <input id="photo-upload" type="file" accept="image/*" />
             </label>
 
             {lastResult && (
-              <p className="status-note" role="alert" style={{ background: lastResult.startsWith("✓") ? undefined : "rgba(240,200,200,.7)" }}>
-                {lastResult}
+              <p
+                className={`status-note${lastResult.ok ? "" : " status-note-error"}`}
+                role={lastResult.ok ? "status" : "alert"}
+              >
+                {lastResult.ok ? <CheckCircleIcon size={18} /> : <AlertIcon size={18} />}
+                {lastResult.message}
               </p>
             )}
 

@@ -1,13 +1,13 @@
-# 📋 Eco-DPI — Manual TODO List
+# Eco-DPI — Manual TODO List
 
 Things that **only you can add** (credentials, API keys, secrets).
 All other code has been fixed automatically.
 
 ---
 
-## 🔴 Priority 1 — Required to Run (Do These First)
+## Priority 1 — Required to Run (Do These First)
 
-### ✅ Already Done (Auto-fixed)
+### Already done (auto-fixed)
 - Backend server script fixed (`npm run dev:all` now starts everything)
 - JWT_SECRET added to `.env`
 - OTP switched to email-based (no more phone SMS)
@@ -16,7 +16,7 @@ All other code has been fixed automatically.
 
 ---
 
-## 🟠 Priority 2 — Phone OTP via SMS (Do This to Enable Real SMS)
+## Priority 2 — Phone OTP via SMS
 
 Right now Phone OTP works in **dev mode** — the OTP code is shown on screen (yellow box).
 To send real SMS to users, add your **Twilio** credentials:
@@ -44,7 +44,7 @@ To send real SMS to users, add your **Twilio** credentials:
 
 ---
 
-## 🟡 Priority 3 — Real Google OAuth (Optional)
+## Priority 3 — Real Google OAuth (Optional)
 
 Right now Google Sign-In is a "direct login" (user types their Gmail).
 To enable the real **Google OAuth popup** (one-click), you need API credentials:
@@ -70,7 +70,7 @@ To enable the real **Google OAuth popup** (one-click), you need API credentials:
 
 ---
 
-## 🟡 Priority 4 — Real SMS OTP (Optional, Paid)
+## Priority 4 — Real SMS OTP (Optional, Paid)
 
 If you want real SMS OTP (instead of email OTP), use **Twilio**:
 
@@ -87,7 +87,7 @@ If you want real SMS OTP (instead of email OTP), use **Twilio**:
 
 ---
 
-## 🟢 Priority 5 — Production Security Hardening
+## Priority 5 — Production Security Hardening
 
 When deploying to **Vercel / Railway / Render**:
 
@@ -107,7 +107,7 @@ This disables the dev OTP code display in the UI.
 
 ---
 
-## 🔵 Priority 6 — Nice to Have (Future Features)
+## Priority 6 — Nice to Have (Future Features)
 
 | Feature | What to do |
 |---------|-----------|

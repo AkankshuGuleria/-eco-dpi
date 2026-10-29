@@ -1,6 +1,25 @@
 // Shared types used across all pages
 
-export type Page = "home" | "login" | "citizen" | "admin" | "demo";
+export type Page =
+  | "home"
+  | "login"
+  | "signup"
+  | "admin-login"
+  | "citizen"
+  | "admin"
+  | "demo"
+  | "eco-learn"
+  | "take-action"
+  | "privacy";
+
+export interface AppUser {
+  _id?: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+  identity?: string;
+  role: Role;
+}
 export type Role = "citizen" | "admin";
 export type Status = "Active" | "In progress" | "Resolved";
 

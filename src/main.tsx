@@ -1,16 +1,29 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 
-import { Page, Incident, DeviceLocation } from "./types";
-import { fetchIncidents, createIncident, checkHealth, getCurrentUser, fetchAnnouncements } from "./api";
+import { Page, Incident, DeviceLocation, AppUser } from "./types";
+import {
+  fetchIncidents,
+  createIncident,
+  checkHealth,
+  getCurrentUser,
+  fetchAnnouncements,
+  ApiError,
+} from "./api";
 import { demoLocation } from "./utils";
+import { pageFromPath, pathForPage, PUBLIC_PAGES, safeNextPath } from "./routing";
 
 import { AnimatedBackground, Header } from "./components/Header";
 import { HomePage }          from "./pages/HomePage";
 import { LoginPage }         from "./pages/LoginPage";
+import { SignupPage }        from "./pages/SignupPage";
+import { AdminLoginPage }    from "./pages/AdminLoginPage";
 import { CitizenDashboard }  from "./pages/CitizenPage";
 import { AdminDashboard }    from "./pages/AdminPage";
 import { DemoPage }          from "./pages/DemoPage";
+import { EcoLearnPage }      from "./pages/EcoLearnPage";
+import { TakeActionPage }    from "./pages/TakeActionPage";
+import { PrivacyPage }       from "./pages/PrivacyPage";
 import { Preloader }         from "./components/Preloader";
 import { ParticleField }     from "./components/ParticleField";
 import { Cursor }            from "./components/Cursor";
@@ -20,47 +33,81 @@ import { useSmoothScroll, useScrollReveal } from "./hooks/useMotion";
 import "./styles/globals.css";
 import "./styles/motion.css";
 
+const TOKEN_KEY = "eco-dpi-token";
+
 function App() {
-  const [page, setPage]               = useState<Page>("home");
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [page, setPage]               = useState<Page>(() =>
+    typeof window === "undefined" ? "home" : pageFromPath(window.location.pathname)
+  );
+  const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
   const [isLoggedIn, setIsLoggedIn]   = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const [deviceLocation, setDeviceLocation] = useState<DeviceLocation | null>(null);
-  const [locationStatus, setLocationStatus] = useState("Location permission is required to show nearby reports.");
+  const [, setLocationStatus] = useState("Location permission is required to show nearby reports.");
   const [incidents, setIncidents]     = useState<Incident[]>([]);
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [loading, setLoading]         = useState(true);
   const [dbConnected, setDbConnected] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
-  
-  const [showPreloader, setShowPreloader] = useState(
-    () => !sessionStorage.getItem("eco-dpi-loaded")
-  );
+  const [showPreloader, setShowPreloader] = useState(true);
 
   useSmoothScroll();
-  useScrollReveal();
+  useScrollReveal(page);
 
-  // Try to load current user on mount (auto-login if token exists)
-  useEffect(() => {
-    async function checkUserSession() {
-      const token = localStorage.getItem("eco-dpi-token");
-      if (token) {
-        try {
-          const res = await getCurrentUser();
-          if (res.user) {
-            setCurrentUser(res.user);
-            setIsLoggedIn(true);
-          } else {
-            localStorage.removeItem("eco-dpi-token");
-          }
-        } catch {
-          localStorage.removeItem("eco-dpi-token");
-        }
-      }
+  /* ── Session bootstrap + revalidation ────────────────────────────────── */
+  const loadSession = useCallback(async () => {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token) {
+      setCurrentUser(null);
+      setIsLoggedIn(false);
+      setAuthChecked(true);
+      return;
     }
-    checkUserSession();
-  }, [page]);
+    try {
+      const res = await getCurrentUser();
+      if (res?.user) {
+        setCurrentUser(res.user);
+        setIsLoggedIn(true);
+      } else {
+        localStorage.removeItem(TOKEN_KEY);
+        setCurrentUser(null);
+        setIsLoggedIn(false);
+      }
+    } catch (err) {
+      // Only drop the session when the server rejects the token. A network
+      // outage should not silently sign the user out.
+      if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+        localStorage.removeItem(TOKEN_KEY);
+        setCurrentUser(null);
+        setIsLoggedIn(false);
+      }
+    } finally {
+      setAuthChecked(true);
+    }
+  }, []);
 
-  // Check backend health + load incidents on mount
+  useEffect(() => {
+    loadSession();
+  }, [loadSession]);
+
+  /* ── Back/forward buttons ────────────────────────────────────────────── */
+  useEffect(() => {
+    const onPop = () => {
+      setPage(pageFromPath(window.location.pathname));
+      window.scrollTo({ top: 0, behavior: "auto" });
+    };
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) loadSession();
+    };
+    window.addEventListener("popstate", onPop);
+    window.addEventListener("pageshow", onPageShow);
+    return () => {
+      window.removeEventListener("popstate", onPop);
+      window.removeEventListener("pageshow", onPageShow);
+    };
+  }, [loadSession]);
+
+  /* ── Health + data bootstrap ─────────────────────────────────────────── */
   useEffect(() => {
     async function init() {
       try {
@@ -71,15 +118,13 @@ function App() {
       }
 
       try {
-        const data = await fetchIncidents();
-        setIncidents(data);
+        setIncidents(await fetchIncidents());
       } catch {
         console.warn("[eco-dpi] Backend unreachable — no incidents loaded.");
       }
 
       try {
-        const ann = await fetchAnnouncements();
-        setAnnouncements(ann);
+        setAnnouncements(await fetchAnnouncements());
       } catch {
         console.warn("[eco-dpi] Backend unreachable — no announcements loaded.");
       } finally {
@@ -89,45 +134,66 @@ function App() {
     init();
   }, []);
 
-  // Poll incidents + announcements every 30 s when page is visible
+  /* ── Poll incidents + announcements every 30 s ───────────────────────── */
   useEffect(() => {
     if (!dbConnected) return;
     const id = setInterval(async () => {
       try {
-        const data = await fetchIncidents();
-        setIncidents(data);
+        setIncidents(await fetchIncidents());
       } catch { /* silent */ }
       try {
-        const ann = await fetchAnnouncements();
-        setAnnouncements(ann);
+        setAnnouncements(await fetchAnnouncements());
       } catch { /* silent */ }
     }, 30_000);
     return () => clearInterval(id);
   }, [dbConnected]);
 
-  const isAdmin = currentUser?.role === "admin" || (currentUser?.email && currentUser.email.toLowerCase() === "akankshuguleria2000@gmail.com");
+  /* ── Route guard (UX only — every protected API re-checks the role) ─── */
+  const redirectToAuth = useCallback((target: Page) => {
+    const dest: Page = target === "admin" ? "admin-login" : "login";
+    const next = `?next=${encodeURIComponent(pathForPage(target))}`;
+    window.history.replaceState({ page: dest }, "", pathForPage(dest) + next);
+    setPage(dest);
+  }, []);
 
-  // Navigate guard helper
-  function navigate(nextPage: Page) {
-    // If navigating to citizen page and not logged in, redirect to login
-    if (nextPage === "citizen" && !localStorage.getItem("eco-dpi-token")) {
-      setPage("login");
-    } else {
-      setPage(nextPage);
+  useEffect(() => {
+    if (!authChecked) return;
+    if (page === "admin" && !currentUser) {
+      redirectToAuth("admin");
+      return;
     }
-    window.scrollTo({ top: 0, behavior: "auto" });
-  }
+    if (!PUBLIC_PAGES.includes(page) && !currentUser) {
+      redirectToAuth(page);
+    }
+  }, [authChecked, currentUser, page, redirectToAuth]);
+
+  const isAdmin = currentUser?.role === "admin";
+
+  /* ── Navigation ──────────────────────────────────────────────────────── */
+  const navigate = useCallback(
+    (target: Page) => {
+      if (!PUBLIC_PAGES.includes(target) && !currentUser) {
+        redirectToAuth(target);
+        window.scrollTo({ top: 0, behavior: "auto" });
+        return;
+      }
+
+      window.history.pushState({ page: target }, "", pathForPage(target));
+      setPage(target);
+      window.scrollTo({ top: 0, behavior: "auto" });
+    },
+    [currentUser, redirectToAuth]
+  );
 
   const handlePreloaderDone = useCallback(() => {
-    sessionStorage.setItem("eco-dpi-loaded", "1");
     setShowPreloader(false);
   }, []);
 
-  // Handle location request on demand during login submission
+  /* ── Location ────────────────────────────────────────────────────────── */
   const requestLocation = (callback: () => void) => {
     if (!navigator.geolocation) {
-      setLocationStatus("Geolocation is not supported by your browser.");
-      callback(); // Continue anyway (graceful fallback)
+      setLocationStatus("Geolocation is not supported by this browser.");
+      callback();
       return;
     }
 
@@ -139,7 +205,7 @@ function App() {
         setDeviceLocation({
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
-          label: "Your device location"
+          label: "Your device location",
         });
         setLocationStatus("Location connected successfully.");
         setLoginLoading(false);
@@ -148,27 +214,45 @@ function App() {
       () => {
         setLoginLoading(false);
         setLocationStatus("Permission denied. Demo location will be used.");
-        callback(); // Fallback to demo area
+        callback();
       },
       { enableHighAccuracy: true, timeout: 8000 }
     );
   };
 
-  const handleLoginSuccess = (token: string, user: any) => {
-    localStorage.setItem("eco-dpi-token", token);
+  /* ── Auth handlers ───────────────────────────────────────────────────── */
+  const handleLoginSuccess = useCallback((token: string, user: AppUser) => {
+    localStorage.setItem(TOKEN_KEY, token);
     setCurrentUser(user);
     setIsLoggedIn(true);
+    setAuthChecked(true);
 
-    const isAdmin = user.role === "admin" || (user.email && user.email.toLowerCase() === "akankshuguleria2000@gmail.com");
-    navigate(isAdmin ? "admin" : "citizen");
-  };
+    const next = safeNextPath(new URLSearchParams(window.location.search).get("next"));
+    const authPages: Page[] = ["login", "signup", "admin-login"];
 
-  const handleLogout = () => {
-    localStorage.removeItem("eco-dpi-token");
+    let dest: Page;
+    if (next && !authPages.includes(next)) {
+      dest = next;
+    } else {
+      dest = user.role === "admin" ? "admin" : "citizen";
+    }
+
+    // A citizen must never land on the admin dashboard.
+    if (dest === "admin" && user.role !== "admin") dest = "citizen";
+
+    window.history.replaceState({ page: dest }, "", pathForPage(dest));
+    setPage(dest);
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }, []);
+
+  const handleLogout = useCallback(() => {
+    localStorage.removeItem(TOKEN_KEY);
     setCurrentUser(null);
     setIsLoggedIn(false);
-    navigate("home");
-  };
+    window.history.replaceState({ page: "home" }, "", pathForPage("home"));
+    setPage("home");
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }, []);
 
   const addIncident = useCallback(
     async (category: string, location?: DeviceLocation) => {
@@ -211,7 +295,14 @@ function App() {
       <ParticleField />
       <AnimatedBackground />
       <a className="skip-link" href="#main">Skip to main content</a>
-      <Header page={page} navigate={navigate} isAdmin={isAdmin} />
+      <Header
+        page={page}
+        navigate={navigate}
+        isAdmin={isAdmin}
+        isLoggedIn={isLoggedIn}
+        user={currentUser}
+        onLogout={handleLogout}
+      />
 
       <main id="main">
         <PageTransition pageKey={page}>
@@ -229,11 +320,20 @@ function App() {
 
           {page === "login" && (
             <LoginPage
+              navigate={navigate}
               onLoginSuccess={handleLoginSuccess}
-              locationStatus={locationStatus}
+              locationStatus={undefined}
               loading={loginLoading}
               onRequestLocation={requestLocation}
             />
+          )}
+
+          {page === "signup" && (
+            <SignupPage navigate={navigate} onLoginSuccess={handleLoginSuccess} />
+          )}
+
+          {page === "admin-login" && (
+            <AdminLoginPage navigate={navigate} onLoginSuccess={handleLoginSuccess} />
           )}
 
           {page === "citizen" && (
@@ -263,6 +363,18 @@ function App() {
 
           {page === "demo" && (
             <DemoPage navigate={navigate} />
+          )}
+
+          {page === "eco-learn" && (
+            <EcoLearnPage navigate={navigate} />
+          )}
+
+          {page === "take-action" && (
+            <TakeActionPage navigate={navigate} />
+          )}
+
+          {page === "privacy" && (
+            <PrivacyPage navigate={navigate} />
           )}
         </PageTransition>
       </main>

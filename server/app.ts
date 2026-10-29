@@ -37,21 +37,42 @@ app.use((_req, res, next) => {
 app.use(express.json({ limit: "100kb" }));
 
 const authHits = new Map<string, { count: number; resetAt: number }>();
-app.use("/api/auth", (req, res, next) => {
+const loginHits = new Map<string, { count: number; resetAt: number }>();
+
+function hitLimit(
+  store: Map<string, { count: number; resetAt: number }>,
+  key: string,
+  max: number,
+  windowMs: number
+): boolean {
   const now = Date.now();
-  const key = req.ip || req.socket.remoteAddress || "unknown";
-  const current = authHits.get(key);
-  const windowMs = 15 * 60 * 1000;
-  const max = 60;
+  const current = store.get(key);
 
   if (!current || current.resetAt <= now) {
-    authHits.set(key, { count: 1, resetAt: now + windowMs });
-    return next();
+    store.set(key, { count: 1, resetAt: now + windowMs });
+    return false;
   }
 
   current.count += 1;
-  if (current.count > max) {
+  return current.count > max;
+}
+
+app.use("/api/auth", (req, res, next) => {
+  const ip = req.ip || req.socket.remoteAddress || "unknown";
+  const windowMs = 15 * 60 * 1000;
+
+  if (hitLimit(authHits, ip, 60, windowMs)) {
     return res.status(429).json({ error: "Too many authentication attempts. Please try again later." });
+  }
+
+  const sensitive =
+    req.method === "POST" &&
+    ["/login/password", "/login/admin", "/register", "/otp/send"].some((path) =>
+      req.path.endsWith(path)
+    );
+
+  if (sensitive && hitLimit(loginHits, ip, 20, windowMs)) {
+    return res.status(429).json({ error: "Too many sign-in attempts. Please try again later." });
   }
 
   next();

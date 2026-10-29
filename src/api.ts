@@ -2,6 +2,16 @@ import { Incident } from "./types";
 
 const BASE = (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/$/, "");
 
+/** Error carrying the HTTP status so callers can tell 401 from a network outage. */
+export class ApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
 async function readJson<T>(res: Response, fallbackMessage: string): Promise<T> {
   const text = await res.text();
   if (!text) {
@@ -18,7 +28,7 @@ async function readJson<T>(res: Response, fallbackMessage: string): Promise<T> {
 async function requestJson<T>(res: Response, fallbackMessage: string): Promise<T> {
   if (!res.ok) {
     const body = await readJson<{ error?: string }>(res, fallbackMessage);
-    throw new Error(body.error || fallbackMessage);
+    throw new ApiError(body.error || fallbackMessage, res.status);
   }
 
   return readJson<T>(res, fallbackMessage);
@@ -144,11 +154,11 @@ export async function deleteAnnouncement(id: string): Promise<{ deleted: boolean
 
 // Authentication Calls
 
-export async function registerWithPassword(email: string, password: string): Promise<any> {
+export async function registerWithPassword(email: string, password: string, name?: string): Promise<any> {
   const res = await fetch(`${BASE}/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, name }),
   });
   return requestJson<any>(res, "Registration failed");
 }
@@ -160,6 +170,15 @@ export async function loginWithPassword(email: string, password: string): Promis
     body: JSON.stringify({ email, password }),
   });
   return requestJson<any>(res, "Login failed");
+}
+
+export async function loginAsAdmin(email: string, password: string): Promise<any> {
+  const res = await fetch(`${BASE}/auth/login/admin`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  return requestJson<any>(res, "Administrator login failed");
 }
 
 export async function sendOtp(phone: string): Promise<{

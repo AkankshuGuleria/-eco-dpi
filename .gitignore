@@ -11,6 +11,8 @@ dist-server/
 
 # Environment
 .env
+.env.local
+.env.*.local
 
 # Editor
 .vscode/

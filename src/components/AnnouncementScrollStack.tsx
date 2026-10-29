@@ -3,14 +3,27 @@
 import { useRef, useEffect } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import {
+  CalendarIcon,
+  ClockIcon,
+  InboxIcon,
+  MapPinIcon,
+  MegaphoneIcon,
+  AlertIcon,
+  RefreshIcon,
+  type IconComponent,
+} from "./Icons";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const TYPE_STYLES: Record<string, { icon: string; accent: string; glow: string; label: string }> = {
-  event: { icon: "📅", accent: "#3b82f6", glow: "rgba(59,130,246,.35)", label: "Event" },
-  notice: { icon: "📢", accent: "#34d399", glow: "rgba(52,211,153,.35)", label: "Notice" },
-  alert: { icon: "🚨", accent: "#f87171", glow: "rgba(248,113,113,.35)", label: "Alert" },
-  update: { icon: "🛠️", accent: "#fbbf24", glow: "rgba(251,191,36,.35)", label: "Update" },
+const TYPE_STYLES: Record<
+  string,
+  { Icon: IconComponent; accent: string; glow: string; label: string }
+> = {
+  event: { Icon: CalendarIcon, accent: "#3b82f6", glow: "rgba(59,130,246,.35)", label: "Event" },
+  notice: { Icon: MegaphoneIcon, accent: "#34d399", glow: "rgba(52,211,153,.35)", label: "Notice" },
+  alert: { Icon: AlertIcon, accent: "#f87171", glow: "rgba(248,113,113,.35)", label: "Alert" },
+  update: { Icon: RefreshIcon, accent: "#fbbf24", glow: "rgba(251,191,36,.35)", label: "Update" },
 };
 
 export function AnnouncementScrollStack({ announcements }: { announcements: any[] }) {
@@ -48,7 +61,7 @@ export function AnnouncementScrollStack({ announcements }: { announcements: any[
 
       {approved.length === 0 ? (
         <div className="ann-empty-state">
-          <div className="ann-empty-icon" aria-hidden="true">📭</div>
+          <div className="ann-empty-icon" aria-hidden="true"><InboxIcon size={40} /></div>
           <p className="ann-empty-text">No upcoming events or notices right now.</p>
           <p className="ann-empty-sub">Check back later for city updates.</p>
         </div>
@@ -56,6 +69,7 @@ export function AnnouncementScrollStack({ announcements }: { announcements: any[
         <div className="ann-grid">
           {approved.map((a: any, idx: number) => {
             const meta = TYPE_STYLES[a.type] || TYPE_STYLES.notice;
+            const TypeIcon = meta.Icon;
             return (
               <div
                 key={a._id}
@@ -71,7 +85,9 @@ export function AnnouncementScrollStack({ announcements }: { announcements: any[
                 <div className="ann-3d-rim" />
                 <div className="ann-3d-inner">
                   <div className="ann-3d-top">
-                    <span className="ann-3d-icon" aria-hidden="true">{meta.icon}</span>
+                    <span className="ann-3d-icon" aria-hidden="true" style={{ color: meta.accent }}>
+                      <TypeIcon size={22} />
+                    </span>
                     <span className="ann-3d-type" style={{ background: `${meta.accent}18`, color: meta.accent, boxShadow: `0 0 12px ${meta.glow}` }}>
                       {meta.label}
                     </span>
@@ -80,9 +96,15 @@ export function AnnouncementScrollStack({ announcements }: { announcements: any[
                   <p>{a.message}</p>
                   {(a.eventDate || a.eventTime || a.location) && (
                     <div className="ann-3d-meta">
-                      {a.eventDate && <span>📅 {new Date(a.eventDate).toLocaleDateString()}</span>}
-                      {a.eventTime && <span>🕐 {a.eventTime}</span>}
-                      {a.location && <span>📍 {a.location}</span>}
+                      {a.eventDate && (
+                        <span><CalendarIcon size={15} /> {new Date(a.eventDate).toLocaleDateString()}</span>
+                      )}
+                      {a.eventTime && (
+                        <span><ClockIcon size={15} /> {a.eventTime}</span>
+                      )}
+                      {a.location && (
+                        <span><MapPinIcon size={15} /> {a.location}</span>
+                      )}
                     </div>
                   )}
                 </div>

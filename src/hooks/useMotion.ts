@@ -41,28 +41,45 @@ export function useSmoothScroll() {
 /**
  * Attaches Intersection Observer scroll-reveal to all .reveal elements.
  * Staggers children inside .reveal-stagger containers.
+ * Pass `pageKey` to re-run whenever the page changes.
  */
-export function useScrollReveal() {
+export function useScrollReveal(pageKey?: string) {
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            entry.target.classList.add("revealed");
-            observer.unobserve(entry.target);
+    let observer: IntersectionObserver | null = null;
+
+    // Short delay lets React flush the new page DOM before we observe
+    const tid = setTimeout(() => {
+      const nextObserver = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("revealed");
+              nextObserver.unobserve(entry.target);
+            }
           }
-        }
-      },
-      { threshold: 0.12, rootMargin: "0px 0px -40px 0px" }
-    );
+        },
+        { threshold: 0.12, rootMargin: "0px 0px -40px 0px" }
+      );
+      observer = nextObserver;
 
-    const targets = document.querySelectorAll(".reveal, .reveal-stagger > *");
-    targets.forEach((el) => observer.observe(el));
+      const targets = document.querySelectorAll(".reveal, .reveal-stagger > *");
+      targets.forEach((el) => {
+        // Reset previously revealed elements when page changes
+        el.classList.remove("revealed");
+        nextObserver.observe(el);
+      });
 
-    return () => observer.disconnect();
-  }, []);
+      // Refresh ScrollTrigger positions after page change
+      ScrollTrigger.refresh();
+    }, 80);
+
+    return () => {
+      clearTimeout(tid);
+      observer?.disconnect();
+    };
+  }, [pageKey]);
 }
 
 /**

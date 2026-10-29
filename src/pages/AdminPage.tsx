@@ -1,7 +1,19 @@
 import React, { useMemo, useState } from "react";
-import { Incident, Announcement } from "../types";
+import { Incident, Announcement, Page } from "../types";
 import { Metric } from "../components/Shared";
 import { IncidentMap } from "../components/IncidentMap";
+import {
+  AlertIcon,
+  ArrowUpIcon,
+  BarChartIcon,
+  ClipboardIcon,
+  ClockIcon,
+  DownloadIcon,
+  LogOutIcon,
+  MegaphoneIcon,
+  ShieldIcon,
+  TrashIcon,
+} from "../components/Icons";
 import { updateIncidentStatus, deleteIncident, updateIncidentPriority, fetchAllAnnouncements, createAnnouncement, approveAnnouncement, rejectAnnouncement, deleteAnnouncement } from "../api";
 import { demoLocation } from "../utils";
 import "../styles/admin.css";
@@ -10,7 +22,7 @@ interface AdminDashboardProps {
   currentUser: any;
   incidents: Incident[];
   setIncidents: React.Dispatch<React.SetStateAction<Incident[]>>;
-  navigate: (page: "home" | "login" | "citizen" | "admin") => void;
+  navigate: (page: Page) => void;
   onLogout: () => void;
   announcements: Announcement[];
   setAnnouncements: React.Dispatch<React.SetStateAction<Announcement[]>>;
@@ -56,8 +68,9 @@ export function AdminDashboard({ currentUser, incidents, setIncidents, navigate,
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [searchText,    setSearchText]    = useState("");
 
-  // Guard: require admin user (Gmail hardcoded checking or role admin)
-  const isAdmin = currentUser?.role === "admin" || (currentUser?.email && currentUser.email.toLowerCase() === "akankshuguleria2000@gmail.com");
+  // Client-side convenience only. The server re-checks the database role on
+  // every admin API call, so this can never be used to gain access.
+  const isAdmin = currentUser?.role === "admin";
 
   const visibleIncidents = useMemo(() => {
     const statusFilters = ["All", "Active", "In progress", "Resolved"];
@@ -185,15 +198,23 @@ export function AdminDashboard({ currentUser, incidents, setIncidents, navigate,
 
   if (!isAdmin) {
     return (
-      <section className="admin-dashboard shell" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "60vh", textAlign: "center" }}>
-        <div className="clay-card" style={{ padding: "2.5rem", maxWidth: "450px" }}>
-          <h2 style={{ color: "#ea4335", marginBottom: "1rem" }}>⚠️ Access Denied</h2>
-          <p style={{ color: "var(--quiet)", marginBottom: "2rem" }}>
-            The admin portal is strictly visible to authenticated administrators only. If you are an admin, please login with the authorized email address.
+      <section className="admin-dashboard shell admin-denied" aria-labelledby="admin-denied-title">
+        <div className="clay-card admin-denied-card">
+          <span className="admin-denied-icon" aria-hidden="true">
+            <ShieldIcon size={32} />
+          </span>
+          <h1 id="admin-denied-title">Administrator access required</h1>
+          <p>
+            This area is limited to accounts with an administrator role. If you
+            are an administrator, sign in with your administrator credentials.
           </p>
-          <div style={{ display: "flex", gap: "1rem", justifyContent: "center" }}>
-            <button className="button primary" onClick={() => navigate("login")}>Login as Admin</button>
-            <button className="button secondary" onClick={() => navigate("home")}>Back to Home</button>
+          <div className="button-row admin-denied-actions">
+            <button className="button primary" type="button" onClick={() => navigate("admin-login")}>
+              Administrator sign in
+            </button>
+            <button className="button secondary" type="button" onClick={() => navigate("home")}>
+              Back to home
+            </button>
           </div>
         </div>
       </section>
@@ -211,20 +232,22 @@ export function AdminDashboard({ currentUser, incidents, setIncidents, navigate,
           <h1 id="admin-title">Monitor clusters, hotspots, and priority.</h1>
           <p>Logged in as: {currentUser?.email || "Admin"}</p>
         </div>
-        <div style={{ display: "flex", gap: ".7rem", flexWrap: "wrap" }}>
+        <div className="dashboard-actions">
           <button
             className="button secondary small"
             type="button"
             onClick={() => exportCSV(visibleIncidents)}
             title="Download visible incidents as CSV"
           >
-            ⬇ Export CSV
+            <DownloadIcon size={18} />
+            Export CSV
           </button>
           <button className="button secondary" type="button" onClick={() => navigate("citizen")}>
             Citizen portal
           </button>
-          <button className="button secondary" type="button" onClick={onLogout} style={{ border: "1px solid rgba(255, 100, 100, 0.4)", color: "rgba(255, 150, 150, 0.9)" }}>
-            Logout
+          <button className="button secondary" type="button" onClick={onLogout}>
+            <LogOutIcon size={18} />
+            Sign out
           </button>
         </div>
       </div>
@@ -241,7 +264,10 @@ export function AdminDashboard({ currentUser, incidents, setIncidents, navigate,
         <div className="ann-admin-head">
           <div>
             <p className="signal">City announcements</p>
-            <h3>📢 Events, notices &amp; alerts shown on the home page</h3>
+            <h3 className="section-title-with-icon">
+              <MegaphoneIcon size={20} />
+              Events, notices &amp; alerts shown on the home page
+            </h3>
           </div>
           <button className="button primary small" type="button" onClick={() => setShowAnnForm((v) => !v)}>
             {showAnnForm ? "Close" : "+ New announcement"}
@@ -249,8 +275,9 @@ export function AdminDashboard({ currentUser, incidents, setIncidents, navigate,
         </div>
 
         {annError && (
-          <div className="error-banner" style={{ background: "rgba(240,80,80,.18)", borderLeft: "4px solid #e0533d", padding: ".6rem .8rem", borderRadius: "6px", marginBottom: ".8rem", fontSize: ".85rem" }}>
-            ⚠️ {annError}
+          <div className="error-banner" role="alert">
+            <AlertIcon size={18} />
+            <span>{annError}</span>
           </div>
         )}
 
@@ -302,7 +329,10 @@ export function AdminDashboard({ currentUser, incidents, setIncidents, navigate,
 
         {pendingAnnouncements.length > 0 && (
           <div className="ann-pending">
-            <h4>⏳ Pending approval ({pendingAnnouncements.length})</h4>
+            <h4 className="section-title-with-icon">
+              <ClockIcon size={18} />
+              Pending approval ({pendingAnnouncements.length})
+            </h4>
             {pendingAnnouncements.map((a) => (
               <div className="ann-item" key={a._id}>
                 <div className="ann-item-body">
@@ -334,7 +364,15 @@ export function AdminDashboard({ currentUser, incidents, setIncidents, navigate,
                 {a.status !== "approved" && (
                   <button className="button primary small" type="button" onClick={() => handleAnnAction(a._id!, "approve")}>Approve</button>
                 )}
-                <button className="delete-btn" type="button" title="Delete" onClick={() => handleAnnAction(a._id!, "delete")}>🗑</button>
+                <button
+                  className="delete-btn"
+                  type="button"
+                  title="Delete announcement"
+                  aria-label={`Delete announcement: ${a.title}`}
+                  onClick={() => handleAnnAction(a._id!, "delete")}
+                >
+                  <TrashIcon size={18} />
+                </button>
               </div>
             </div>
           ))}
@@ -372,7 +410,13 @@ export function AdminDashboard({ currentUser, incidents, setIncidents, navigate,
               type="button"
               onClick={() => setSortKey(k)}
             >
-              {k === "priority" ? "⬆ Priority" : k === "reports" ? "📊 Reports" : "🕒 Newest"}
+              {k === "priority" ? (
+                <><ArrowUpIcon size={16} /> Priority</>
+              ) : k === "reports" ? (
+                <><BarChartIcon size={16} /> Reports</>
+              ) : (
+                <><ClockIcon size={16} /> Newest</>
+              )}
             </button>
           ))}
         </div>
@@ -381,7 +425,7 @@ export function AdminDashboard({ currentUser, incidents, setIncidents, navigate,
       <div className="admin-layout">
         <div>
           {/* Real Leaflet Map */}
-          <div style={{ height: "400px", marginBottom: "2rem", position: "relative" }}>
+          <div className="map-panel admin-map">
             <IncidentMap
               incidents={visibleIncidents}
               center={demoLocation}
@@ -390,7 +434,10 @@ export function AdminDashboard({ currentUser, incidents, setIncidents, navigate,
           </div>
 
           <div className="stats-breakdown clay-card">
-            <h3>📊 Category breakdown</h3>
+            <h3 className="section-title-with-icon">
+              <BarChartIcon size={20} />
+              Category breakdown
+            </h3>
             {categoryStats.length === 0
               ? <p className="status-note">No data.</p>
               : <ol className="stats-list">
@@ -412,7 +459,10 @@ export function AdminDashboard({ currentUser, incidents, setIncidents, navigate,
         </div>
 
         <aside className="incident-panel clay-card" aria-label="Incident list">
-          <h3>📋 Incidents ({visibleIncidents.length})</h3>
+          <h3 className="section-title-with-icon">
+            <ClipboardIcon size={20} />
+            Incidents ({visibleIncidents.length})
+          </h3>
           <div className="incident-list">
             {visibleIncidents.length === 0 && (
               <p className="status-note">No incidents match this filter.</p>
@@ -477,7 +527,9 @@ export function AdminDashboard({ currentUser, incidents, setIncidents, navigate,
                       onClick={() => setDeleteConfirm(incident.incidentId)}
                       title="Remove report"
                       aria-label={`Delete ${incident.category}`}
-                    >🗑</button>
+                    >
+                      <TrashIcon size={18} />
+                    </button>
                   )}
                 </div>
               </article>
