@@ -1,4 +1,6 @@
 import React, { useEffect, useRef } from "react";
+import * as L from "leaflet";
+import "leaflet/dist/leaflet.css";
 import { Incident } from "../types";
 
 interface IncidentMapProps {
@@ -9,6 +11,48 @@ interface IncidentMapProps {
   onMarkerClick?: (incident: Incident) => void;
 }
 
+const PRIORITY_COLORS = ["#8a8a8a", "#34a853", "#fbbc05", "#e8711a", "#ea4335"];
+
+function createIncidentPopup(incident: Incident, color: string): HTMLElement {
+  const content = document.createElement("div");
+  content.style.cssText = "font-family:sans-serif;color:#222;min-width:150px;padding:0.2rem";
+
+  const heading = document.createElement("h4");
+  heading.textContent = incident.category;
+  heading.style.cssText = `margin:0 0 5px;color:${color};font-size:14px`;
+  content.append(heading);
+
+  const addDetail = (label: string, value: string) => {
+    const paragraph = document.createElement("p");
+    paragraph.style.cssText = "margin:0 0 5px;font-size:12px";
+    const strong = document.createElement("b");
+    strong.textContent = `${label}:`;
+    paragraph.append(strong, document.createTextNode(` ${value}`));
+    content.append(paragraph);
+  };
+
+  addDetail("Sector", incident.sector);
+  addDetail("Reports", `${incident.reports} times`);
+  addDetail("Priority", `P${incident.priority}`);
+
+  const status = document.createElement("span");
+  status.textContent = incident.status;
+  status.style.cssText = "display:inline-block;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:bold";
+  if (incident.status === "Resolved") {
+    status.style.backgroundColor = "#d4edda";
+    status.style.color = "#155724";
+  } else if (incident.status === "In progress") {
+    status.style.backgroundColor = "#fff3cd";
+    status.style.color = "#856404";
+  } else {
+    status.style.backgroundColor = "#f8d7da";
+    status.style.color = "#721c24";
+  }
+  content.append(status);
+
+  return content;
+}
+
 export function IncidentMap({
   incidents,
   center,
@@ -16,153 +60,80 @@ export function IncidentMap({
   interactive = true,
   onMarkerClick,
 }: IncidentMapProps) {
-  const mapRef = useRef<HTMLDivElement>(null);
-  const leafletMapInstance = useRef<any>(null);
-  const markersGroup = useRef<any>(null);
+  const mapElement = useRef<HTMLDivElement>(null);
+  const mapInstance = useRef<L.Map | null>(null);
+  const markersGroup = useRef<L.LayerGroup | null>(null);
 
   useEffect(() => {
-    // Dynamically load Leaflet CSS if it hasn't been loaded already
-    if (!document.getElementById("leaflet-css")) {
-      const link = document.createElement("link");
-      link.id = "leaflet-css";
-      link.rel = "stylesheet";
-      link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
-      document.head.appendChild(link);
-    }
-  }, []);
+    const container = mapElement.current;
+    if (!container) return;
 
-  useEffect(() => {
-    if (!mapRef.current) return;
+    const map = L.map(container, {
+      zoomControl: interactive,
+      dragging: interactive,
+      scrollWheelZoom: false,
+      touchZoom: interactive,
+    }).setView([center.lat, center.lng], zoom);
 
-    // Wait until window.L (Leaflet) is loaded
-    const initMap = () => {
-      const L = (window as any).L;
-      if (!L) {
-        setTimeout(initMap, 100);
-        return;
-      }
-
-      // Initialize map instance if not already initialized
-      if (!leafletMapInstance.current) {
-        leafletMapInstance.current = L.map(mapRef.current, {
-          zoomControl: interactive,
-          dragging: interactive,
-          scrollWheelZoom: interactive && false, // Disable scroll zoom by default for better page scrolling
-          touchZoom: interactive,
-        }).setView([center.lat, center.lng], zoom);
-
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        }).addTo(leafletMapInstance.current);
-
-        markersGroup.current = L.layerGroup().addTo(leafletMapInstance.current);
-      } else {
-        leafletMapInstance.current.setView([center.lat, center.lng], zoom);
-      }
-
-      // Clear old markers
-      markersGroup.current.clearLayers();
-
-      // Add user pin marker
-      const userIcon = L.divIcon({
-        className: "leaflet-user-marker",
-        html: `<div style="background: #4285F4; width: 16px; height: 16px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 10px rgba(0,0,0,0.5);"></div>`,
-        iconSize: [16, 16],
-        iconAnchor: [8, 8],
-      });
-      L.marker([center.lat, center.lng], { icon: userIcon })
-        .addTo(markersGroup.current)
-        .bindPopup("Your Location");
-
-      // Add incident markers
-      incidents.forEach((incident) => {
-        // Color based on priority (1-5)
-        const colors = ["#8a8a8a", "#34a853", "#fbbc05", "#e8711a", "#ea4335"];
-        const color = colors[incident.priority - 1] || colors[0];
-        
-        const incidentIcon = L.divIcon({
-          className: `leaflet-incident-marker prio-${incident.priority}`,
-          html: `
-            <div style="
-              background: ${color};
-              color: white;
-              font-weight: bold;
-              width: 24px;
-              height: 24px;
-              border-radius: 50%;
-              border: 2px solid white;
-              box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              font-size: 11px;
-              cursor: pointer;
-            ">
-              ${incident.reports}
-            </div>
-          `,
-          iconSize: [24, 24],
-          iconAnchor: [12, 12],
-        });
-
-        const marker = L.marker([incident.lat, incident.lng], { icon: incidentIcon })
-          .addTo(markersGroup.current);
-
-        // Bind popup info
-        marker.bindPopup(`
-          <div style="font-family: sans-serif; color: #222; min-width: 150px; padding: 0.2rem;">
-            <h4 style="margin: 0 0 5px 0; color: ${color}; font-size: 14px;">${incident.category}</h4>
-            <p style="margin: 0 0 5px 0; font-size: 12px;"><b>Sector:</b> ${incident.sector}</p>
-            <p style="margin: 0 0 5px 0; font-size: 12px;"><b>Reports:</b> ${incident.reports} times</p>
-            <p style="margin: 0 0 5px 0; font-size: 12px;"><b>Priority:</b> P${incident.priority}</p>
-            <span style="
-              display: inline-block;
-              padding: 2px 6px;
-              border-radius: 4px;
-              font-size: 10px;
-              font-weight: bold;
-              background: ${incident.status === 'Resolved' ? '#d4edda' : incident.status === 'In progress' ? '#fff3cd' : '#f8d7da'};
-              color: ${incident.status === 'Resolved' ? '#155724' : incident.status === 'In progress' ? '#856404' : '#721c24'};
-            ">${incident.status}</span>
-          </div>
-        `);
-
-        if (onMarkerClick) {
-          marker.on("click", () => onMarkerClick(incident));
-        }
-      });
-    };
-
-    // Load leaflet script if not loaded, otherwise initialize map
-    if (!(window as any).L) {
-      const script = document.createElement("script");
-      script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-      script.async = true;
-      script.onload = initMap;
-      document.body.appendChild(script);
-    } else {
-      initMap();
-    }
+    mapInstance.current = map;
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    }).addTo(map);
+    markersGroup.current = L.layerGroup().addTo(map);
 
     return () => {
-      // Properly tear down the Leaflet instance so remounts don't throw
-      // "Map container is already initialized".
-      if (leafletMapInstance.current) {
-        try {
-          leafletMapInstance.current.off();
-          leafletMapInstance.current.remove();
-        } catch {
-          /* ignore teardown errors */
-        }
-        leafletMapInstance.current = null;
-        markersGroup.current = null;
-      }
+      map.remove();
+      mapInstance.current = null;
+      markersGroup.current = null;
     };
-  }, [incidents, center, zoom, interactive, onMarkerClick]);
+  }, [interactive]);
+
+  useEffect(() => {
+    mapInstance.current?.setView([center.lat, center.lng], zoom);
+  }, [center.lat, center.lng, zoom]);
+
+  useEffect(() => {
+    const markers = markersGroup.current;
+    if (!markers) return;
+    markers.clearLayers();
+
+    const userMarker = document.createElement("div");
+    userMarker.style.cssText = "background:#4285F4;width:16px;height:16px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 10px rgba(0,0,0,0.5)";
+    const userIcon = L.divIcon({
+      className: "leaflet-user-marker",
+      html: userMarker,
+      iconSize: [16, 16],
+      iconAnchor: [8, 8],
+    });
+    L.marker([center.lat, center.lng], { icon: userIcon })
+      .addTo(markers)
+      .bindPopup("Your Location");
+
+    incidents.forEach((incident) => {
+      const color = PRIORITY_COLORS[incident.priority - 1] ?? PRIORITY_COLORS[0];
+      const markerElement = document.createElement("div");
+      markerElement.textContent = String(incident.reports);
+      markerElement.style.cssText = `background:${color};color:white;font-weight:bold;width:24px;height:24px;border-radius:50%;border:2px solid white;box-shadow:0 2px 5px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer`;
+
+      const incidentIcon = L.divIcon({
+        className: `leaflet-incident-marker prio-${incident.priority}`,
+        html: markerElement,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12],
+      });
+      const marker = L.marker([incident.lat, incident.lng], { icon: incidentIcon })
+        .addTo(markers)
+        .bindPopup(createIncidentPopup(incident, color));
+
+      if (onMarkerClick) {
+        marker.on("click", () => onMarkerClick(incident));
+      }
+    });
+  }, [incidents, center.lat, center.lng, onMarkerClick]);
 
   return (
     <div
-      ref={mapRef}
+      ref={mapElement}
       style={{
         width: "100%",
         height: "100%",

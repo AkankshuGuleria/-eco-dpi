@@ -333,9 +333,6 @@ export function GoogleLogin({
         style={disabled ? { pointerEvents: "none", opacity: 0.6 } : undefined}
       />
       {loadError && <p className="auth-hint" role="status">{loadError}</p>}
-      <p className="auth-hint google-origin-hint">
-        Google sign-in requires this site&apos;s origin to be authorized: <code>{window.location.origin}</code>
-      </p>
     </>
   );
 }

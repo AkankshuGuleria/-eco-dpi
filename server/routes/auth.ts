@@ -33,14 +33,6 @@ function generateToken(userId: string): string {
   return jwt.sign({ userId }, getJwtSecret(), { expiresIn: "7d" });
 }
 
-/**
- * ADMIN_EMAILS can grant the admin role to an account, but can never take it
- * away. Once an account is an admin in the database it stays an admin.
- */
-function roleForExistingUser(user: IUser): "admin" | "citizen" {
-  return isAdminEmail(user.email) ? "admin" : user.role;
-}
-
 /** Normalise phone: strip spaces/dashes, ensure leading + */
 function normalisePhone(raw: string): string {
   let p = raw.replace(/[\s\-().]/g, "");
@@ -119,14 +111,13 @@ router.post("/register", async (req: Request, res: Response) => {
       return res.status(409).json({ error: "An account with this email already exists" });
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const role: "admin" | "citizen" = isAdminEmail(email) ? "admin" : "citizen";
 
     const user = await User.create({
       name: name || undefined,
       email,
       identity: email,
       passwordHash,
-      role,
+      role: "citizen",
     });
 
     const token = generateToken(user._id.toString());
@@ -144,12 +135,6 @@ async function verifyPasswordLogin(email: string, password: string) {
 
   const match = await bcrypt.compare(password, user.passwordHash);
   if (!match) return null;
-
-  const nextRole = roleForExistingUser(user);
-  if (user.role !== nextRole) {
-    user.role = nextRole;
-    await user.save();
-  }
 
   return user;
 }
@@ -341,41 +326,6 @@ router.post("/google/verify", async (req: Request, res: Response) => {
   } catch (err) {
     console.error("[auth] google/verify error:", err);
     res.status(500).json({ error: "Google token verification failed" });
-  }
-});
-
-// ── POST /api/auth/google/direct (dev-only fallback) ──────────────────────────
-router.post("/google/direct", async (req: Request, res: Response) => {
-  try {
-    if (!isDev() && process.env.ALLOW_INSECURE_GOOGLE_DIRECT !== "true") {
-      return res.status(501).json({ error: "Direct Google sign-in is disabled in production" });
-    }
-
-    const { email, googleId } = req.body;
-    if (!email || !googleId)
-      return res.status(400).json({ error: "Email and Google ID are required" });
-
-    let user = await User.findOne({ $or: [{ googleId }, { email: String(email).toLowerCase() }] });
-
-    if (user) {
-      let modified = false;
-      if (!user.googleId) { user.googleId = googleId; modified = true; }
-      if (isAdminEmail(email) && user.role !== "admin") { user.role = "admin"; modified = true; }
-      if (modified) await user.save();
-    } else {
-      user = await User.create({
-        email: String(email).toLowerCase(),
-        identity: String(email).toLowerCase(),
-        googleId,
-        role: isAdminEmail(email) ? "admin" : "citizen",
-      });
-    }
-
-    const token = generateToken(user._id.toString());
-    res.json({ token, user: publicUser(user) });
-  } catch (err) {
-    console.error("[auth] google/direct error:", err);
-    res.status(500).json({ error: "Google sign-in failed" });
   }
 });
 

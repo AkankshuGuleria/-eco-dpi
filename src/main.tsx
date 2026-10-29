@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { Page, Incident, DeviceLocation, AppUser } from "./types";
 import {
   fetchIncidents,
+  fetchAdminIncidents,
   createIncident,
   checkHealth,
   getCurrentUser,
@@ -109,44 +110,61 @@ function App() {
 
   /* ── Health + data bootstrap ─────────────────────────────────────────── */
   useEffect(() => {
+    if (!authChecked) return;
+    let active = true;
+
     async function init() {
+      setLoading(true);
       try {
         const health = await checkHealth();
-        setDbConnected(health.db === "connected");
-      } catch {
-        setDbConnected(false);
+        if (active) setDbConnected(health.db === "connected");
+      } catch (err) {
+        if (active) setDbConnected(false);
+        console.warn("[eco-dpi] Backend health check failed.", err);
       }
 
       try {
-        setIncidents(await fetchIncidents());
-      } catch {
-        console.warn("[eco-dpi] Backend unreachable — no incidents loaded.");
+        const loadIncidents = currentUser?.role === "admin" ? fetchAdminIncidents : fetchIncidents;
+        const data = await loadIncidents();
+        if (active) setIncidents(data);
+      } catch (err) {
+        console.warn("[eco-dpi] Backend unreachable — no incidents loaded.", err);
       }
 
       try {
-        setAnnouncements(await fetchAnnouncements());
-      } catch {
-        console.warn("[eco-dpi] Backend unreachable — no announcements loaded.");
+        const data = await fetchAnnouncements();
+        if (active) setAnnouncements(data);
+      } catch (err) {
+        console.warn("[eco-dpi] Backend unreachable — no announcements loaded.", err);
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     }
-    init();
-  }, []);
+
+    void init();
+    return () => {
+      active = false;
+    };
+  }, [authChecked, currentUser?.role]);
 
   /* ── Poll incidents + announcements every 30 s ───────────────────────── */
   useEffect(() => {
     if (!dbConnected) return;
     const id = setInterval(async () => {
       try {
-        setIncidents(await fetchIncidents());
-      } catch { /* silent */ }
+        const loadIncidents = currentUser?.role === "admin" ? fetchAdminIncidents : fetchIncidents;
+        setIncidents(await loadIncidents());
+      } catch (err) {
+        console.warn("[eco-dpi] Failed to refresh incidents.", err);
+      }
       try {
         setAnnouncements(await fetchAnnouncements());
-      } catch { /* silent */ }
+      } catch (err) {
+        console.warn("[eco-dpi] Failed to refresh announcements.", err);
+      }
     }, 30_000);
     return () => clearInterval(id);
-  }, [dbConnected]);
+  }, [dbConnected, currentUser?.role]);
 
   /* ── Route guard (UX only — every protected API re-checks the role) ─── */
   const redirectToAuth = useCallback((target: Page) => {

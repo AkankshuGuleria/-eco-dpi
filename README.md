@@ -96,7 +96,7 @@ Add these Environment Variables in Vercel before deploying:
 |----------|---------|
 | `MONGO_URI` | MongoDB Atlas connection string |
 | `JWT_SECRET` | Secret used to sign auth tokens |
-| `ADMIN_EMAIL` | Email that receives admin permissions |
+| `ADMIN_EMAILS` | Optional comma-separated list of Google-verified admin emails |
 | `CORS_ORIGINS` | Optional comma-separated site origins, such as `https://your-site.vercel.app` |
 | `VITE_GOOGLE_CLIENT_ID` | Google OAuth web client ID, available to the frontend at build time |
 | `GOOGLE_CLIENT_ID` | Same Google OAuth web client ID, used by the API to verify token audience |
@@ -104,6 +104,8 @@ Add these Environment Variables in Vercel before deploying:
 The frontend calls `/api` by default in production. During local Vite development, `/api` is proxied to `http://localhost:4000`.
 
 For Google sign-in, create an OAuth client with application type **Web application** in Google Cloud Console. Add `http://localhost:5173` under **Authorized JavaScript origins** for local development and the exact HTTPS site origin for each deployment. Set `VITE_GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_ID` to the same client ID, then restart the dev server or rebuild/redeploy the frontend.
+
+Allow-listed administrator access is granted only after Google verifies the email address. Public password registration always creates a citizen account; assign the database role through a trusted administrator-provisioning process for password-based admin accounts.
 
 ---
 

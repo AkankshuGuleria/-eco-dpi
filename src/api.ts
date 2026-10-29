@@ -49,6 +49,11 @@ export async function fetchIncidents(): Promise<Incident[]> {
   return requestJson<Incident[]>(res, "Failed to fetch incidents");
 }
 
+export async function fetchAdminIncidents(): Promise<Incident[]> {
+  const res = await fetch(`${BASE}/incidents/admin`, { headers: getHeaders() });
+  return requestJson<Incident[]>(res, "Failed to fetch administrator incidents");
+}
+
 export async function createIncident(payload: {
   category: string;
   lat: number;
@@ -218,15 +223,6 @@ export async function verifyGoogleToken(idToken: string): Promise<any> {
     body: JSON.stringify({ idToken }),
   });
   return requestJson<any>(res, "Google verification failed");
-}
-
-export async function loginWithGoogleDirect(email: string, googleId: string, name?: string): Promise<any> {
-  const res = await fetch(`${BASE}/auth/google/direct`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, googleId, name }),
-  });
-  return requestJson<any>(res, "Google Login failed");
 }
 
 export async function getCurrentUser(): Promise<any> {

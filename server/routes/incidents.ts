@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import mongoose from "mongoose";
-import Incident from "../models/Incident.js";
+import Incident, { type IIncident } from "../models/Incident.js";
 import { requireAuth, requireAdmin } from "../middleware/auth.js";
 
 const router = Router();
@@ -34,8 +34,25 @@ function isValidCoord(lat: any, lng: any): boolean {
   );
 }
 
+function publicIncident(incident: IIncident) {
+  const result = incident.toObject();
+  result.lat = Number(result.lat.toFixed(3));
+  result.lng = Number(result.lng.toFixed(3));
+  return result;
+}
+
 // GET /api/incidents — list all (unprotected so anyone can see the map / public stats)
 router.get("/", async (_req: Request, res: Response) => {
+  try {
+    const incidents = await Incident.find().sort({ createdAt: -1 });
+    res.json(incidents.map(publicIncident));
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch incidents" });
+  }
+});
+
+// GET /api/incidents/admin — exact locations are restricted to administrators
+router.get("/admin", requireAuth, requireAdmin, async (_req: Request, res: Response) => {
   try {
     const incidents = await Incident.find().sort({ createdAt: -1 });
     res.json(incidents);
@@ -49,7 +66,7 @@ router.get("/:id", async (req: Request, res: Response) => {
   try {
     const incident = await Incident.findOne({ incidentId: req.params.id });
     if (!incident) return res.status(404).json({ error: "Not found" });
-    res.json(incident);
+    res.json(publicIncident(incident));
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch incident" });
   }

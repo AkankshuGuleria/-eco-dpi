@@ -18,9 +18,8 @@ export function getJwtSecret(): string {
 }
 
 /**
- * ADMIN_EMAILS is a comma-separated allow-list used only to grant the admin
- * role to an existing/new account. The database role is the source of truth
- * after that and is never downgraded automatically.
+ * ADMIN_EMAILS is a comma-separated allow-list for verified Google accounts.
+ * Password registrations never receive the admin role from an email address.
  */
 export function getAdminEmails(): string[] {
   const raw = [process.env.ADMIN_EMAILS, process.env.ADMIN_EMAIL]

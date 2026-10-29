@@ -145,19 +145,6 @@
   max-width: 100%;
 }
 
-.google-origin-hint {
-  font-size: 0.8125rem;
-  line-height: 1.45;
-  margin: 0;
-  text-align: center;
-}
-
-.google-origin-hint code {
-  color: var(--green-800);
-  font-size: 0.8125rem;
-  overflow-wrap: anywhere;
-}
-
 .google-button {
   gap: var(--space-3);
   width: 100%;
